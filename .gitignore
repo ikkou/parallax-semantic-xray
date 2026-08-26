@@ -5,5 +5,9 @@ dist
 *.tsbuildinfo
 .DS_Store
 *.log
+*.tgz
+coverage
+playwright-report
+test-results
 .env*
 !.env.example

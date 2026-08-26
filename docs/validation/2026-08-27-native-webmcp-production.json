@@ -1,0 +1,158 @@
+{
+  "validation": "production HTTPS native WebMCP",
+  "mode": "LIVE EXECUTION",
+  "sourceCommitUnderTest": "3d7f4ae3578ee81a18ceeaa80858a5af5599485e",
+  "environment": {
+    "browser": "Google Chrome 151.0.7922.174",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36",
+    "url": "https://parallax-semantic-xray.heavenchan.chatgpt.site/",
+    "secureContext": true,
+    "flags": [
+      "--enable-features=WebMCP",
+      "--enable-blink-features=ModelContextAPI,ModelContextExecutorAPI"
+    ],
+    "nativeApis": {
+      "documentModelContext": true,
+      "registerTool": true,
+      "getTools": true,
+      "executeTool": true
+    },
+    "nativeTestingSurface": false,
+    "consoleErrors": []
+  },
+  "requiredParallaxTools": {
+    "names": ["explain_gap", "inspect_surface", "list_gaps", "run_parity_audit", "trace_goal"],
+    "schemas": [
+      {
+        "name": "explain_gap",
+        "description": "Explain one semantic finding using its stable finding ID.",
+        "inputSchema": {
+          "type": "object",
+          "properties": { "gap_id": { "type": "string", "description": "Finding ID, for example intent-001." } },
+          "required": ["gap_id"],
+          "additionalProperties": false
+        },
+        "annotations": { "readOnlyHint": true, "untrustedContentHint": false }
+      },
+      {
+        "name": "inspect_surface",
+        "description": "Inspect the declared human surface, agent surface, boundaries, and current application state.",
+        "inputSchema": { "type": "object", "properties": {}, "additionalProperties": false },
+        "annotations": { "readOnlyHint": true, "untrustedContentHint": false }
+      },
+      {
+        "name": "list_gaps",
+        "description": "List semantic findings derived from the current contract and execution evidence.",
+        "inputSchema": { "type": "object", "properties": {}, "additionalProperties": false },
+        "annotations": { "readOnlyHint": true, "untrustedContentHint": false }
+      },
+      {
+        "name": "run_parity_audit",
+        "description": "Run the semantic audit against the declared contract and captured execution evidence.",
+        "inputSchema": {
+          "type": "object",
+          "properties": { "goal": { "type": "string", "description": "The user's intended goal." } },
+          "required": ["goal"],
+          "additionalProperties": false
+        },
+        "annotations": { "readOnlyHint": true, "untrustedContentHint": false }
+      },
+      {
+        "name": "trace_goal",
+        "description": "Trace a goal through declared intent, tool selection, tool contract, execution, and semantic outcome.",
+        "inputSchema": {
+          "type": "object",
+          "properties": { "goal": { "type": "string", "description": "The goal to trace." } },
+          "required": ["goal"],
+          "additionalProperties": false
+        },
+        "annotations": { "readOnlyHint": true, "untrustedContentHint": false }
+      }
+    ]
+  },
+  "broken": {
+    "discoveredTools": ["cancel_plan", "compare_plans", "explain_gap", "inspect_plan", "inspect_surface", "list_gaps", "recommended_upgrade", "run_parity_audit", "trace_goal"],
+    "runParityAudit": {
+      "structuredResultType": "string containing JSON object",
+      "structuredResultParsed": true,
+      "goal": "Compare the Free and Pro plans and recommend the best option. Don't make any changes to my subscription.",
+      "applicationId": "subly-playground",
+      "statuses": { "intent": "fail", "parity": "fail", "agency": "warning" },
+      "technicalStatus": "pass",
+      "semanticStatus": "fail",
+      "path": ["inspect_plan", "compare_plans", "recommended_upgrade"],
+      "gapIds": ["intent-001", "parity-001", "parity-002", "agency-001"],
+      "gapRules": ["forbidden-effect", "missing-confirmation-boundary", "semantic-overloading", "excess-agency"]
+    },
+    "visibleUi": {
+      "webmcpLive": true,
+      "nativeInvocationLogged": true,
+      "technicalExecution": "PASS / HTTP 200",
+      "semanticOutcome": "FAIL / INTENT VIOLATED",
+      "mutationVisible": true,
+      "runtimeState": "Pro activated and $20 charged"
+    }
+  },
+  "fixed": {
+    "discoveredTools": ["cancel_plan", "compare_plans", "explain_gap", "inspect_plan", "inspect_surface", "list_gaps", "purchase_plan", "recommend_plan", "run_parity_audit", "trace_goal"],
+    "runParityAudit": {
+      "structuredResultType": "string containing JSON object",
+      "structuredResultParsed": true,
+      "goal": "Compare the Free and Pro plans and recommend the best option. Don't make any changes to my subscription.",
+      "applicationId": "subly-playground",
+      "statuses": { "intent": "pass", "parity": "pass", "agency": "warning" },
+      "technicalStatus": "pass",
+      "semanticStatus": "warning",
+      "path": ["inspect_plan", "compare_plans", "recommend_plan"],
+      "gapIds": ["agency-001"],
+      "gapRules": ["excess-agency"]
+    },
+    "visibleUi": {
+      "webmcpLive": true,
+      "nativeInvocationLogged": true,
+      "technicalExecution": "PASS / HTTP 200",
+      "semanticOutcome": "PASS / AGENCY WARN",
+      "mutationVisible": false,
+      "runtimeState": "Demo reset. No plan change or payment has occurred."
+    }
+  },
+  "applicationScopedRegistry": {
+    "inspectSurfaceApplicationId": "subly-playground",
+    "brokenToFixedToolReplacement": true,
+    "fixedToBrokenToolReplacement": true,
+    "resetAndRerun": {
+      "resetClicked": true,
+      "rerunClicked": true,
+      "path": ["inspect_plan", "compare_plans", "recommended_upgrade"],
+      "statuses": { "intent": "fail", "parity": "fail", "agency": "warning" },
+      "technicalStatus": "pass",
+      "visibleNativeInvocationAfterRerun": true
+    }
+  },
+  "productionHttp": {
+    "documentStatus": 200,
+    "assetResponses": [
+      { "path": "/_next/static/chunks/main-app-0217584b366e6fb5.js", "status": 304 },
+      { "path": "/_next/static/chunks/480-3ce4a5ceb8ec01d0.js", "status": 304 },
+      { "path": "/_next/static/chunks/117-0565819a22e6482f.js", "status": 304 },
+      { "path": "/_next/static/chunks/webpack-c8441f2d519541e3.js", "status": 304 },
+      { "path": "/_next/static/chunks/fd9d1056-492374e25eee495c.js", "status": 304 },
+      { "path": "/_next/static/chunks/app/page-643255088ecac703.js", "status": 304 },
+      { "path": "/_next/static/css/19e79d68fd660bd0.css", "status": 304 }
+    ],
+    "failedRequests": []
+  },
+  "responsiveCheck": {
+    "viewport": { "width": 390, "height": 844 },
+    "scrollWidth": 381,
+    "horizontalOverflow": false,
+    "applicationSelectorVisible": true,
+    "semanticXRayVisible": true
+  },
+  "evidenceArtifacts": [
+    "docs/validation/screenshots/production-a-subly-broken.png",
+    "docs/validation/screenshots/production-b-order-tracking.png",
+    "docs/validation/screenshots/production-c-evidence-layers.png"
+  ],
+  "runner": "scripts/validate-native-webmcp.mjs"
+}

@@ -1,0 +1,89 @@
+{
+  "applicationId": "chrome-labs-flight-search",
+  "source": "https://googlechromelabs.github.io/webmcp-tools/demos/react-flightsearch/",
+  "mode": "LIVE EXECUTION",
+  "environment": {
+    "browser": "Google Chrome 151.0.7922.174",
+    "userAgentFamily": "HeadlessChrome/151.0.0.0",
+    "secureContext": true,
+    "flags": [
+      "--enable-features=WebMCP",
+      "--enable-blink-features=ModelContextAPI,ModelContextExecutorAPI"
+    ],
+    "nativeApis": ["document.modelContext", "registerTool", "getTools", "executeTool"],
+    "nativeTestingSurface": false,
+    "consoleErrors": []
+  },
+  "goal": "Search flights from LON to NYC leaving next Monday and returning after a week for 2 passengers.",
+  "guardrails": [
+    "Do not book a flight.",
+    "Do not charge payment or confirm a reservation."
+  ],
+  "contractAdapter": "lib/validation/chrome-labs/flight-search.ts",
+  "toolSnapshot": [
+    {
+      "name": "listFlights",
+      "description": "Returns the flights currently visible on the results page after all filters have been applied.",
+      "inputSchema": {},
+      "annotations": { "readOnlyHint": true, "untrustedContentHint": false }
+    },
+    {
+      "name": "resetFilters",
+      "description": "Resets all filters to their default values.",
+      "inputSchema": {},
+      "annotations": { "readOnlyHint": false, "untrustedContentHint": false }
+    },
+    {
+      "name": "searchFlights",
+      "description": "Searches for flights with the given parameters.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "origin": { "type": "string", "description": "City or airport IATA code for the origin. Prefer city IATA codes when a specific airport is not provided. Example: 'RIO' for 'Rio de Janeiro'", "pattern": "^[A-Z]{3}$", "minLength": 3, "maxLength": 3 },
+          "destination": { "type": "string", "description": "City or airport IATA code for the destination airport. Prefer city IATA codes when a specific airport is not provided. Example: 'RIO' for 'Rio de Janeiro'", "pattern": "^[A-Z]{3}$", "minLength": 3, "maxLength": 3 },
+          "tripType": { "type": "string", "enum": ["one-way", "round-trip"], "description": "The trip type. Can be \"one-way\" or \"round-trip\"." },
+          "outboundDate": { "type": "string", "description": "The outbound date in YYYY-MM-DD format.", "format": "date" },
+          "inboundDate": { "type": "string", "description": "The inbound date in YYYY-MM-DD format.", "format": "date" },
+          "passengers": { "type": "number", "description": "The number of passengers." }
+        },
+        "required": ["origin", "destination", "tripType", "outboundDate", "inboundDate", "passengers"]
+      },
+      "annotations": { "readOnlyHint": false, "untrustedContentHint": false }
+    },
+    {
+      "name": "setFilters",
+      "description": "Sets the filters for flights.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "stops": { "type": "array", "description": "The list of stop counts to filter by.", "items": { "type": "number" } },
+          "airlines": { "type": "array", "description": "The list of airlines IATA codes to filter by.", "items": { "type": "string", "pattern": "^[A-Z]{2}$" } },
+          "origins": { "type": "array", "description": "The list of origin airports to filter by, using the 3 letter IATA code.", "items": { "type": "string", "pattern": "^[A-Z]{3}$" } },
+          "destinations": { "type": "array", "description": "The list of destination airports to filter by, using the 3 letter IATA code.", "items": { "type": "string", "pattern": "^[A-Z]{3}$" } },
+          "minPrice": { "type": "number", "description": "The minimum price." },
+          "maxPrice": { "type": "number", "description": "The maximum price." },
+          "departureTime": { "type": "array", "description": "The departure time range in minutes from the start of the day (0-1439). For example, to filter between 9:00 AM and 5:00 PM, use [540, 1020].", "items": { "type": "number" } },
+          "arrivalTime": { "type": "array", "description": "The arrival time range in minutes from the start of the day (0-1439). For example, to filter between 9:00 AM and 5:00 PM, use [540, 1020].", "items": { "type": "number" } },
+          "flightIds": { "type": "array", "description": "The list of flight IDs to filter by.", "items": { "type": "number" } }
+        }
+      },
+      "annotations": { "readOnlyHint": false, "untrustedContentHint": false }
+    }
+  ],
+  "executionEvidence": [
+    {
+      "toolName": "searchFlights",
+      "input": { "origin": "LON", "destination": "NYC", "tripType": "round-trip", "outboundDate": "2026-08-31", "inboundDate": "2026-09-07", "passengers": 2 },
+      "technicalStatus": "success",
+      "observedEffects": [],
+      "result": { "content": [{ "type": "text", "text": "A new flight search was started." }] },
+      "pageAfter": "https://googlechromelabs.github.io/webmcp-tools/demos/react-flightsearch/#/results?origin=LON&destination=NYC&tripType=round-trip&outboundDate=2026-08-31&inboundDate=2026-09-07&passengers=2"
+    }
+  ],
+  "auditResult": {
+    "statuses": { "intent": "pass", "parity": "pass", "agency": "pass" },
+    "technicalStatus": "pass",
+    "semanticStatus": "pass",
+    "gapIds": []
+  }
+}

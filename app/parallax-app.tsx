@@ -30,33 +30,52 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  getAuditPath,
-  getDemoTools,
-  getToolByName,
-  GOAL_TEXT,
-  runDeterministicAudit,
   type AuditResult,
   type CapabilityRow,
-  type DemoMode,
   type Lens,
-  type PlanId,
   type StageStatus,
-  type ToolDefinition,
+  type ToolContract,
   type TraceStep,
-} from "../lib/audit";
+} from "../lib/core";
 import {
-  executeDemoRuntime,
-  getDemoRuntimeState,
-  resetDemoRuntime,
-  subscribeDemoRuntime,
-  type DemoRuntimeState,
-} from "../lib/demoRuntime";
-import { getTools } from "../lib/webmcp/getTools";
-import { registerTool, resetNativeRegistrations } from "../lib/webmcp/registerTool";
-import { clearLocalTools } from "../lib/webmcp/registry";
-import { getParallaxTools } from "../lib/webmcp/parallaxTools";
-import { getWebMcpSupport } from "../lib/webmcp/support";
-import type { WebMcpSupport } from "../lib/webmcp/types";
+  getSublyContract,
+  getSublyPath,
+  SUBLY_APPLICATION_ID,
+  SUBLY_GOAL,
+  SUBLY_PLAN_DATA,
+  type DemoMode,
+  type PlanId,
+} from "../lib/playground/subly/contract";
+import {
+  getSublyToolByName,
+  getSublyTools,
+  type SublyToolDefinition,
+} from "../lib/playground/subly/tools";
+import {
+  getSublyRuntimeState,
+  resetSublyRuntime,
+  subscribeSublyRuntime,
+  type SublyRuntimeState,
+} from "../lib/playground/subly/runtime";
+import {
+  initialSublyAgentLogs,
+  initialSublyHumanActions,
+  runSublyAudit,
+} from "../lib/playground/subly/scenarios";
+import { getSublyScenarioEvidence } from "../lib/playground/subly/evidence";
+import { executeLocalTool } from "../lib/integration/webmcp/execute";
+import { getLocalTools, clearLocalTools } from "../lib/integration/webmcp/registry";
+import { registerTool, resetNativeRegistrations } from "../lib/integration/webmcp/register";
+import { getParallaxTools, type ParallaxToolContext } from "../lib/integration/parallaxTools";
+import { getWebMcpSupport } from "../lib/integration/webmcp/support";
+import type { EvidenceRecorder } from "../lib/core/evidence";
+import type { WebMcpSupport } from "../lib/integration/webmcp/types";
+import {
+  getValidationContext,
+  VALIDATION_CONTEXTS,
+  type ValidationContext,
+  type ValidationContextId,
+} from "../lib/validation/matrix";
 
 type HumanAction = {
   step: number;
@@ -71,34 +90,6 @@ type AgentLog = {
   tool: string;
   status: "queued" | "running" | "done" | "error";
   detail: string;
-};
-
-const initialHumanActions: HumanAction[] = [
-  { step: 1, time: "12:41:02", label: "Open /plans", detail: "Subly pricing surface loaded" },
-  { step: 2, time: "12:41:09", label: "Select Pro", detail: "Plan selected for comparison", tone: "active" },
-  { step: 3, time: "12:41:13", label: "Compare plans", detail: "Free → Pro feature delta" },
-  { step: 4, time: "12:41:18", label: "Review upgrade", detail: "No subscription change requested", tone: "active" },
-];
-
-const initialAgentLogs: AgentLog[] = [
-  { time: "12:41:19", tool: "inspect_plan", status: "done", detail: "read-only · Free plan" },
-  { time: "12:41:20", tool: "compare_plans", status: "done", detail: "read-only · +$20 / month" },
-  { time: "12:41:20", tool: "recommended_upgrade", status: "done", detail: "HTTP 200 · Pro activated · $20 charged" },
-];
-
-const planData: Record<PlanId, { name: string; price: string; descriptor: string; features: string[] }> = {
-  free: {
-    name: "FREE",
-    price: "$0",
-    descriptor: "For getting started",
-    features: ["3 projects", "Basic analytics", "Community support"],
-  },
-  pro: {
-    name: "PRO",
-    price: "$20",
-    descriptor: "For teams that move fast",
-    features: ["Unlimited projects", "Advanced analytics", "Priority support"],
-  },
 };
 
 function timeNow() {
@@ -120,6 +111,17 @@ function resultLabel(name: string, mode: DemoMode) {
   if (name === "purchase_plan") return "HTTP 200 · explicit purchase · $20 charged";
   if (name === "cancel_plan") return "current plan moved to Free";
   return "read-only result returned";
+}
+
+function toolRisk(tool?: Pick<ToolContract, "declaredEffects" | "annotations">) {
+  if (!tool || tool.declaredEffects.length === 0) return "low";
+  return tool.annotations?.readOnlyHint === true ? "medium" : "high";
+}
+
+function technicalResultLabel(status: StageStatus, external = false) {
+  if (status === "pass") return external ? "PASS / SUCCESS" : "PASS / HTTP 200";
+  if (status === "warning") return "WARN / EVIDENCE INCOMPLETE";
+  return "FAIL / TECHNICAL ERROR";
 }
 
 function StatusGlyph({ status }: { status: StageStatus }) {
@@ -190,6 +192,15 @@ function StageCard({
           </div>
           <div className="trace-stage-detail">{step.detail}</div>
           <div className="trace-stage-meta">{step.meta}</div>
+          {step.evidence && step.evidence.length > 0 && (
+            <div className="trace-evidence">
+              {step.evidence.slice(0, 3).map((item) => (
+                <span key={`${item.layer}-${item.label}-${item.value}`}>
+                  <strong>{item.layer}</strong> {item.label}: {item.value}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -204,16 +215,57 @@ function CapabilityCell({ value }: { value: boolean }) {
   );
 }
 
+function ExternalSurfaceSummary({ context }: { context: ValidationContext }) {
+  return (
+    <div className="external-surface-summary">
+      <div className="captured-marker"><CircleDot size={11} /> CAPTURED EXTERNAL VALIDATION</div>
+      <div className="external-summary-title">{context.label}</div>
+      <div className="external-summary-meta"><span>source</span><a href={context.source} target="_blank" rel="noreferrer">{context.source}</a></div>
+      <div className="external-goal-block">
+        <span className="muted-label">GOAL</span>
+        <p>{context.goal}</p>
+      </div>
+      <div className="external-flow-heading"><Layers3 size={12} /> HUMAN WORKFLOW</div>
+      <div className="external-flow-list">
+        {context.contract.humanSurface.actions.map((action, index) => (
+          <div className="external-flow-row" key={action.id}>
+            <span>{String(index + 1).padStart(2, "0")}</span>
+            <strong>{action.label ?? action.action}</strong>
+            {action.effects.length > 0 && <code>{action.effects.join(" · ")}</code>}
+          </div>
+        ))}
+      </div>
+      {context.contract.humanSurface.boundaries.length > 0 && (
+        <div className="external-boundary-list">
+          <span className="muted-label">BOUNDARIES</span>
+          {context.contract.humanSurface.boundaries.map((boundary) => (
+            <div key={boundary.id}><Lock size={11} /> {boundary.label ?? boundary.id} <code>{boundary.type}</code></div>
+          ))}
+        </div>
+      )}
+      <div className="external-summary-note">The source application is not cloned here. PARALLAX is showing the declared human contract and captured evidence.</div>
+    </div>
+  );
+}
+
 function App() {
   const [mode, setMode] = useState<DemoMode>("broken");
+  const [selectedContext, setSelectedContext] = useState<ValidationContextId>("subly-broken");
   const [selectedPlan, setSelectedPlan] = useState<PlanId>("pro");
-  const [humanActions, setHumanActions] = useState<HumanAction[]>(initialHumanActions);
-  const [agentLogs, setAgentLogs] = useState<AgentLog[]>(initialAgentLogs);
+  const [humanActions, setHumanActions] = useState<HumanAction[]>(initialSublyHumanActions);
+  const [agentLogs, setAgentLogs] = useState<AgentLog[]>(initialSublyAgentLogs);
   const [selectedTool, setSelectedTool] = useState("recommended_upgrade");
-  const [audit, setAudit] = useState<AuditResult>(() => runDeterministicAudit("broken"));
-  const [runtime, setRuntime] = useState<DemoRuntimeState>(() => getDemoRuntimeState());
+  const initialRuntime = getSublyRuntimeState();
+  const initialEvidence = getSublyScenarioEvidence("broken");
+  const [audit, setAudit] = useState<AuditResult>(() => runSublyAudit("broken"));
+  const [runtime, setRuntime] = useState<SublyRuntimeState>(initialRuntime);
+  const executionRef = useRef(initialEvidence);
+  const [executionEvidence, setExecutionEvidence] = useState(initialEvidence);
   const [support, setSupport] = useState<WebMcpSupport>({
     supported: false,
+    registration: false,
+    discovery: false,
+    execution: false,
     label: "Browser check pending",
     detail: "The WebMCP surface is checked after the app mounts.",
   });
@@ -222,6 +274,8 @@ function App() {
   const [visibleStages, setVisibleStages] = useState(6);
   const [needsRetest, setNeedsRetest] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const isExternalContext = selectedContext !== "subly-broken" && selectedContext !== "subly-fixed";
+  const activeContext = getValidationContext(selectedContext);
 
   const onExternalAudit = useCallback((nextAudit: AuditResult) => {
     setAudit(nextAudit);
@@ -234,33 +288,99 @@ function App() {
     ]);
   }, []);
 
-  const stateRef = useRef({ mode, goal: GOAL_TEXT, audit, runtime, onAudit: onExternalAudit });
+  const recordEvidence = useCallback<EvidenceRecorder>((entry) => {
+    executionRef.current = [...executionRef.current, entry];
+    setExecutionEvidence(executionRef.current);
+  }, []);
 
-  const tools = useMemo(() => getDemoTools(mode), [mode]);
-  const path = useMemo(() => getAuditPath(mode), [mode]);
-  const selectedToolDefinition = tools.find((tool) => tool.name === selectedTool);
+  const stateRef = useRef<ParallaxToolContext>({
+    applicationId: SUBLY_APPLICATION_ID,
+    contract: getSublyContract("broken"),
+    audit,
+    execution: initialEvidence,
+    executionComplete: true,
+    runtimeState: initialRuntime,
+    onAudit: onExternalAudit,
+  });
+
+  const tools = useMemo(() => getSublyTools(mode, recordEvidence), [mode, recordEvidence]);
+  const path = useMemo(() => getSublyPath(mode), [mode]);
+  const displayTools = useMemo<ToolContract[]>(
+    () => isExternalContext ? activeContext.contract.agentSurface.tools : tools,
+    [activeContext, isExternalContext, tools],
+  );
+  const displayPath = isExternalContext ? activeContext.audit.path : path;
+  const selectedToolDefinition = displayTools.find((tool) => tool.name === selectedTool);
 
   useEffect(() => {
     setHydrated(true);
   }, []);
 
-  useEffect(() => subscribeDemoRuntime(setRuntime), []);
+  useEffect(() => subscribeSublyRuntime(setRuntime), []);
 
   useEffect(() => {
-    stateRef.current = { mode, goal: GOAL_TEXT, audit, runtime, onAudit: onExternalAudit };
-  }, [audit, mode, onExternalAudit, runtime]);
+    stateRef.current = {
+      applicationId: SUBLY_APPLICATION_ID,
+      contract: getSublyContract(mode),
+      audit,
+      execution: executionEvidence,
+      executionComplete: true,
+      runtimeState: runtime,
+      onAudit: onExternalAudit,
+    };
+  }, [audit, executionEvidence, mode, onExternalAudit, runtime]);
 
   useEffect(() => {
+    if (!isExternalContext) return;
+    const context = activeContext;
+    executionRef.current = context.executionEvidence;
+    setExecutionEvidence(context.executionEvidence);
+    setAudit(context.audit);
+    setSelectedTool(context.audit.path[context.audit.path.length - 1] ?? context.contract.agentSurface.tools[0]?.name ?? "");
+    setHumanActions(context.contract.humanSurface.actions.map((action, index) => ({
+      step: index + 1,
+      time: "captured",
+      label: action.label ?? action.action,
+      detail: action.effects.length > 0 ? `effects · ${action.effects.join(", ")}` : "declared human action",
+      tone: action.effects.length > 0 ? "active" : "normal",
+    })));
+    setAgentLogs(context.executionEvidence.map((entry) => ({
+      time: "captured",
+      tool: entry.toolName,
+      status: entry.technicalStatus === "error" ? "error" : "done",
+      detail: entry.resultSummary ?? "captured execution evidence",
+    })));
+    setNeedsRetest(false);
+    setVisibleStages(6);
+  }, [activeContext, isExternalContext]);
+
+  useEffect(() => {
+    if (isExternalContext) {
+      resetNativeRegistrations(SUBLY_APPLICATION_ID);
+      clearLocalTools(SUBLY_APPLICATION_ID);
+      setSupport({
+        supported: false,
+        registration: false,
+        discovery: false,
+        execution: false,
+        label: "Captured fixture",
+        detail: "This application is represented by a stored external validation record.",
+      });
+      setRegisteredCount(activeContext.toolSnapshot.length);
+      return;
+    }
     const nextSupport = getWebMcpSupport();
     setSupport(nextSupport);
-    resetNativeRegistrations();
-    clearLocalTools();
+    resetNativeRegistrations(SUBLY_APPLICATION_ID);
+    clearLocalTools(SUBLY_APPLICATION_ID);
     const parallaxTools = getParallaxTools(() => stateRef.current);
     const allTools = [...tools, ...parallaxTools];
-    void Promise.all(allTools.map((tool) => registerTool(tool))).then(() => {
-      setRegisteredCount(getTools().length);
+    void Promise.allSettled(
+      allTools.map((tool) => registerTool(tool, { applicationId: SUBLY_APPLICATION_ID })),
+    ).then(() => {
+      setRegisteredCount(getLocalTools(SUBLY_APPLICATION_ID).length);
     });
-  }, [mode, tools]);
+  }, [activeContext, isExternalContext, mode, tools]);
 
   const addHumanAction = useCallback((label: string, detail: string, tone: HumanAction["tone"] = "normal") => {
     setHumanActions((current) => [
@@ -270,16 +390,18 @@ function App() {
   }, []);
 
   const runAuditSequence = useCallback(async () => {
-    if (isRunning) return;
+    if (isRunning || isExternalContext) return;
     setIsRunning(true);
     setNeedsRetest(false);
     setVisibleStages(0);
     setAgentLogs([]);
-    resetDemoRuntime();
+    executionRef.current = [];
+    setExecutionEvidence([]);
+    resetSublyRuntime();
     await wait(160);
 
     for (const [index, name] of path.entries()) {
-      const tool = getToolByName(mode, name);
+      const tool = getSublyToolByName(mode, name);
       if (!tool) continue;
       setSelectedTool(name);
       setVisibleStages(Math.max(1, index + 1));
@@ -294,7 +416,7 @@ function App() {
           : name === "compare_plans"
             ? { from: "free", to: "pro" }
             : {};
-      await tool.execute(input);
+      await executeLocalTool(name, input, SUBLY_APPLICATION_ID);
       setAgentLogs((current) =>
         current.map((entry, entryIndex) =>
           entryIndex === current.length - 1
@@ -306,13 +428,14 @@ function App() {
       await wait(240);
     }
 
-    setAudit(runDeterministicAudit(mode));
+    setAudit(runSublyAudit(mode, SUBLY_GOAL, executionRef.current, true));
     setVisibleStages(6);
     setIsRunning(false);
-  }, [isRunning, mode, path]);
+  }, [isExternalContext, isRunning, mode, path]);
 
   const executeSingleTool = useCallback(async (name: string) => {
-    const tool = getToolByName(mode, name);
+    if (isExternalContext) return;
+    const tool = getSublyToolByName(mode, name);
     if (!tool || isRunning) return;
     setSelectedTool(name);
     setAgentLogs((current) => [
@@ -320,7 +443,11 @@ function App() {
       { time: timeNow(), tool: name, status: "running", detail: "manual invocation" },
     ]);
     await wait(280);
-    await tool.execute(name === "purchase_plan" ? { plan_id: "pro" } : {});
+    await executeLocalTool(
+      name,
+      name === "purchase_plan" ? { plan_id: "pro" } : {},
+      SUBLY_APPLICATION_ID,
+    );
     setAgentLogs((current) =>
       current.map((entry, index) =>
         index === current.length - 1
@@ -329,8 +456,8 @@ function App() {
       ),
     );
     setVisibleStages(6);
-    setAudit(runDeterministicAudit(mode));
-  }, [isRunning, mode]);
+    setAudit(runSublyAudit(mode, SUBLY_GOAL, executionRef.current, true));
+  }, [isExternalContext, isRunning, mode]);
 
   const selectPlan = (plan: PlanId) => {
     setSelectedPlan(plan);
@@ -351,8 +478,12 @@ function App() {
   };
 
   const patchScenario = () => {
-    resetDemoRuntime();
+    resetSublyRuntime();
+    const fixedEvidence = getSublyScenarioEvidence("fixed");
+    executionRef.current = fixedEvidence;
+    setExecutionEvidence(fixedEvidence);
     setMode("fixed");
+    setSelectedContext("subly-fixed");
     setSelectedTool("recommend_plan");
     setNeedsRetest(true);
     setVisibleStages(6);
@@ -360,24 +491,53 @@ function App() {
       { time: timeNow(), tool: "recommend_plan", status: "queued", detail: "read-only replacement ready" },
       { time: timeNow(), tool: "purchase_plan", status: "queued", detail: "explicit confirmation boundary" },
     ]);
-    setAudit(runDeterministicAudit("fixed"));
+    setAudit(runSublyAudit("fixed", SUBLY_GOAL, fixedEvidence, true));
   };
 
   const resetScenario = () => {
-    resetDemoRuntime();
+    resetSublyRuntime();
+    const brokenEvidence = getSublyScenarioEvidence("broken");
+    executionRef.current = brokenEvidence;
+    setExecutionEvidence(brokenEvidence);
     setMode("broken");
+    setSelectedContext("subly-broken");
     setSelectedPlan("pro");
     setSelectedTool("recommended_upgrade");
     setNeedsRetest(false);
     setVisibleStages(6);
-    setHumanActions(initialHumanActions);
-    setAgentLogs(initialAgentLogs);
-    setAudit(runDeterministicAudit("broken"));
+    setHumanActions(initialSublyHumanActions);
+    setAgentLogs(initialSublyAgentLogs);
+    setAudit(runSublyAudit("broken", SUBLY_GOAL, brokenEvidence, true));
   };
 
   const statusCounts = audit.gaps.length;
-  const semanticBreak = audit.statuses.intent === "fail" || audit.statuses.parity === "fail";
-  const activeTool = selectedToolDefinition ?? tools[0];
+  const semanticBreak = audit.statuses.intent === "fail" || audit.statuses.parity === "fail" || audit.technicalStatus === "fail";
+  const agencyWarning = audit.statuses.agency === "warning";
+  const semanticResultLabel = semanticBreak
+    ? audit.statuses.intent === "fail"
+      ? "FAIL / INTENT VIOLATED"
+      : audit.statuses.parity === "fail"
+        ? "FAIL / SEMANTIC DRIFT"
+        : "FAIL / TECHNICAL ERROR"
+    : audit.technicalStatus !== "pass"
+      ? "WARN / EVIDENCE INCOMPLETE"
+      : agencyWarning
+        ? "PASS / AGENCY WARN"
+        : "PASS / AGENCY PRESERVED";
+  const activeTool = selectedToolDefinition ?? displayTools[0];
+  const selectedContextLabel = activeContext.label;
+  const displayedToolCount = isExternalContext ? displayTools.length : registeredCount || tools.length + 5;
+  const semanticBreakDetail = audit.statuses.intent === "fail"
+    ? "Observed execution violated a declared intent guardrail"
+    : audit.statuses.parity === "fail"
+      ? "A declared Human Surface boundary has no equivalent Agent Surface boundary"
+      : "Technical execution failed before semantic completion";
+  const semanticPassTitle = isExternalContext ? "CAPTURED PATH VERIFIED" : "SEMANTIC PATH VERIFIED";
+  const semanticPassDetail = isExternalContext
+    ? audit.semanticStatus === "warning"
+      ? "No direct intent violation was observed; a non-fatal contract asymmetry remains."
+      : "Declared and observed evidence agree for this captured workflow."
+    : `Recommendation returned without changing the subscription.${agencyWarning ? " Mutation tools remain exposed for this read-only goal." : ""}`;
 
   if (!hydrated) {
     return (
@@ -401,12 +561,12 @@ function App() {
           </div>
         </div>
         <div className="topbar-status">
-          <div className={`webmcp-indicator ${support.supported ? "is-live" : "is-local"}`}>
+          <div className={`webmcp-indicator ${isExternalContext ? "is-captured" : support.supported ? "is-live" : "is-local"}`}>
             <CircleDot size={13} />
-            <span>{support.supported ? "WebMCP live" : "local simulator"}</span>
+            <span>{isExternalContext ? "captured validation" : support.supported ? "WebMCP live" : "local simulator"}</span>
           </div>
           <div className="topbar-divider" />
-          <div className="audit-id"><span className="muted-label">AUDIT ID</span> AUD-2026-0826-0017</div>
+          <div className="audit-id"><span className="muted-label">{isExternalContext ? "APPLICATION" : "AUDIT ID"}</span> {isExternalContext ? activeContext.applicationId : "AUD-2026-0826-0017"}</div>
           <button className="icon-button" title="More workspace options" aria-label="More workspace options"><Menu size={17} /></button>
         </div>
       </header>
@@ -417,31 +577,65 @@ function App() {
           <div className="strip-caption">Human semantic surface <ArrowRight size={13} /> Agent tool surface</div>
         </div>
         <div className="mode-controls">
-          <div className="mode-toggle" role="group" aria-label="Scenario mode">
-            <button className={mode === "broken" ? "is-selected is-broken" : ""} onClick={resetScenario}>BROKEN</button>
-            <button className={mode === "fixed" ? "is-selected is-fixed" : ""} onClick={patchScenario}>FIXED</button>
-          </div>
-          <button className="subtle-button" onClick={resetScenario}><RefreshCw size={14} />Reset demo</button>
-          <button className="primary-button" onClick={() => void runAuditSequence()} disabled={isRunning}>
-            {isRunning ? <RefreshCw className="spin" size={14} /> : <Play size={14} fill="currentColor" />}
-            {isRunning ? "Tracing..." : "Re-run audit"}
-          </button>
+          {isExternalContext ? (
+            <span className="captured-chip"><CircleDot size={11} /> CAPTURED · READ-ONLY VIEW</span>
+          ) : (
+            <>
+              <div className="mode-toggle" role="group" aria-label="Scenario mode">
+                <button className={mode === "broken" ? "is-selected is-broken" : ""} onClick={resetScenario}>BROKEN</button>
+                <button className={mode === "fixed" ? "is-selected is-fixed" : ""} onClick={patchScenario}>FIXED</button>
+              </div>
+              <button className="subtle-button" onClick={resetScenario}><RefreshCw size={14} />Reset demo</button>
+              <button className="primary-button" onClick={() => void runAuditSequence()} disabled={isRunning}>
+                {isRunning ? <RefreshCw className="spin" size={14} /> : <Play size={14} fill="currentColor" />}
+                {isRunning ? "Tracing..." : "Re-run audit"}
+              </button>
+            </>
+          )}
         </div>
+      </section>
+
+      <section className="context-strip" aria-label="Application context">
+        <div className="context-label"><Layers3 size={13} /> APPLICATION</div>
+        <select
+          aria-label="Application context"
+          value={selectedContext}
+          onChange={(event) => {
+            const next = event.target.value as ValidationContextId;
+            if (next === "subly-broken") resetScenario();
+            else if (next === "subly-fixed") patchScenario();
+            else setSelectedContext(next);
+          }}
+        >
+          <optgroup label="LIVE PLAYGROUND">
+            {VALIDATION_CONTEXTS.filter((context) => context.kind === "live-playground").map((context) => (
+              <option key={context.id} value={context.id}>{context.label}</option>
+            ))}
+          </optgroup>
+          <optgroup label="CAPTURED EXTERNAL VALIDATION">
+            {VALIDATION_CONTEXTS.filter((context) => context.kind === "captured-external").map((context) => (
+              <option key={context.id} value={context.id}>{context.label}</option>
+            ))}
+          </optgroup>
+        </select>
+        <span className={`context-kind ${isExternalContext ? "is-captured" : "is-live"}`}>
+          <CircleDot size={10} /> {isExternalContext ? "CAPTURED EXTERNAL VALIDATION" : "LIVE PLAYGROUND"}
+        </span>
       </section>
 
       <section className="goal-bar">
         <div className="goal-main">
           <div className="goal-label"><Sparkles size={14} /> AUDIT GOAL</div>
-          <div className="goal-text">“{GOAL_TEXT}”</div>
+          <div className="goal-text">“{audit.goal}”</div>
         </div>
         <div className="goal-meta">
-          <span><span className="muted-label">SCOPE</span> /plans</span>
+          <span><span className="muted-label">SCOPE</span> {isExternalContext ? activeContext.applicationId : "/plans"}</span>
           <span><span className="muted-label">LENS</span> intent · parity · agency</span>
-          <span><span className="muted-label">TOOLS</span> {registeredCount || 9} registered</span>
+          <span><span className="muted-label">TOOLS</span> {displayedToolCount} exposed</span>
         </div>
       </section>
 
-      {!support.supported && (
+      {!isExternalContext && !support.supported && (
         <div className="support-banner">
           <ShieldAlert size={15} />
           <span><strong>WebMCP is not available in this browser.</strong> {support.detail}</span>
@@ -462,10 +656,10 @@ function App() {
           <PanelHeading
             icon={<Eye size={15} />}
             title="HUMAN SURFACE"
-            suffix={<span className="surface-count">SUBLY / PLANS</span>}
-            action={<span className="surface-live"><CircleDot size={11} /> observed</span>}
+            suffix={<span className="surface-count">{isExternalContext ? "CAPTURED EXTERNAL VALIDATION" : "LIVE PLAYGROUND · SUBLY / PLANS"}</span>}
+            action={<span className={`surface-live ${isExternalContext ? "is-captured-label" : ""}`}><CircleDot size={11} /> {isExternalContext ? "captured" : "observed"}</span>}
           />
-          <div className="browser-frame">
+          {isExternalContext ? <ExternalSurfaceSummary context={activeContext} /> : <div className="browser-frame">
             <div className="browser-chrome">
               <div className="traffic-lights"><span /><span /><span /></div>
               <div className="address-bar"><Lock size={11} /> app.subly.local/plans</div>
@@ -483,8 +677,8 @@ function App() {
                 <p>Simple pricing. Cancel anytime.</p>
               </div>
               <div className="plan-grid">
-                {(Object.keys(planData) as PlanId[]).map((plan) => {
-                  const item = planData[plan];
+                {(Object.keys(SUBLY_PLAN_DATA) as PlanId[]).map((plan) => {
+                  const item = SUBLY_PLAN_DATA[plan];
                   const selected = selectedPlan === plan;
                   const current = runtime.currentPlan === plan;
                   return (
@@ -513,9 +707,9 @@ function App() {
                 <div className="runtime-alert"><AlertTriangle size={13} /><span><strong>Observed side effect:</strong> {runtime.lastEvent}</span></div>
               )}
             </div>
-          </div>
+          </div>}
           <div className="subpanel action-log">
-            <div className="subpanel-heading"><span><Activity size={13} /> HUMAN ACTION LOG</span><span className="live-label"><CircleDot size={10} /> live</span></div>
+            <div className="subpanel-heading"><span><Activity size={13} /> {isExternalContext ? "CAPTURED HUMAN CONTRACT" : "HUMAN ACTION LOG"}</span><span className={`live-label ${isExternalContext ? "is-captured-label" : ""}`}><CircleDot size={10} /> {isExternalContext ? "captured" : "live"}</span></div>
             <div className="action-list">
               {humanActions.map((action) => (
                 <div className={`action-row ${action.tone === "active" ? "action-active" : ""} ${action.tone === "danger" ? "action-danger" : ""}`} key={`${action.step}-${action.time}`}>
@@ -533,13 +727,13 @@ function App() {
           <PanelHeading
             icon={<Network size={15} />}
             title="SEMANTIC X-RAY"
-            suffix={<span className={`scenario-label ${mode}`}>{mode === "broken" ? "BROKEN SCENARIO" : "FIXED SCENARIO"}</span>}
+            suffix={<span className={`scenario-label ${isExternalContext ? "captured" : mode}`}>{isExternalContext ? "CAPTURED VALIDATION" : mode === "broken" ? "BROKEN SCENARIO" : "FIXED SCENARIO"}</span>}
             action={<span className="trace-signal"><span className="signal-dot" /> tracing</span>}
           />
           <div className="trace-goal-card">
             <div className="trace-goal-title"><span className="mini-number">01</span> Goal under inspection</div>
-            <div className="trace-goal-copy">{GOAL_TEXT}</div>
-            <div className="trace-goal-tags"><span>prohibited: change_plan</span><span>prohibited: charge_payment</span></div>
+            <div className="trace-goal-copy">{audit.goal}</div>
+            <div className="trace-goal-tags">{activeContext.contract.intent.forbiddenEffects.map((effect) => <span key={effect}>forbidden: {effect}</span>)}</div>
           </div>
           <div className={`trace-list ${isRunning ? "is-running" : ""}`}>
             {audit.steps.map((step, index) => <StageCard key={step.type} step={step} index={index} visible={index < visibleStages} />)}
@@ -549,55 +743,57 @@ function App() {
               <div className="break-icon"><Zap size={19} fill="currentColor" /></div>
               <div className="break-copy">
                 <div className="break-title">SEMANTIC BREAK DETECTED</div>
-                <div className="break-detail">Meaning changed at <strong>TOOL SELECTION</strong><span className="break-arrow">→</span> review boundary disappeared</div>
+                <div className="break-detail">{semanticBreakDetail}</div>
                 <div className="result-contrast">
-                  <div className="result-item result-technical"><span>TECHNICAL RESULT</span><strong>SUCCESS / HTTP 200</strong></div>
-                  <div className="result-item result-semantic"><span>SEMANTIC RESULT</span><strong>FAIL / INTENT VIOLATED</strong></div>
+                  <div className="result-item result-technical"><span>TECHNICAL RESULT</span><strong>{technicalResultLabel(audit.technicalStatus, isExternalContext)}</strong></div>
+                  <div className="result-item result-semantic"><span>SEMANTIC RESULT</span><strong>{semanticResultLabel}</strong></div>
                 </div>
               </div>
-              <div className="break-code">GAP / INTENT-001</div>
+              <div className="break-code">GAP / {audit.gaps[0]?.id?.toUpperCase() ?? "—"}</div>
             </div>
           ) : (
-            <div className="semantic-pass"><div className="pass-icon"><Check size={18} /></div><div className="break-copy"><div className="pass-title">SEMANTIC PATH VERIFIED</div><div className="pass-detail">Recommendation returned without changing the subscription.</div><div className="result-contrast"><div className="result-item result-technical"><span>TECHNICAL RESULT</span><strong>PASS / HTTP 200</strong></div><div className="result-item result-semantic"><span>SEMANTIC RESULT</span><strong>PASS / AGENCY PRESERVED</strong></div></div></div><span className="break-code">VERIFY / PASS</span></div>
+            <div className="semantic-pass"><div className="pass-icon"><Check size={18} /></div><div className="break-copy"><div className="pass-title">{semanticPassTitle}</div><div className="pass-detail">{semanticPassDetail}</div><div className="result-contrast"><div className="result-item result-technical"><span>TECHNICAL RESULT</span><strong>{technicalResultLabel(audit.technicalStatus, isExternalContext)}</strong></div><div className="result-item result-semantic"><span>SEMANTIC RESULT</span><strong>{semanticResultLabel}</strong></div></div></div><span className="break-code">VERIFY / {agencyWarning ? "WARN" : "PASS"}</span></div>
           )}
-          <div className="trace-footer"><span><span className="muted-label">TRACE</span> trc_01J8RX5Z6VQ4K2B9M3H6D7E1F</span><span><span className="muted-label">LATENCY</span> {isRunning ? "—" : "842ms"}</span><span><span className="muted-label">CONTRACT</span> {activeTool?.name ?? "—"}</span></div>
+          <div className="trace-footer"><span><span className="muted-label">TRACE</span> {isExternalContext ? `${selectedContextLabel} / captured` : "trc_01J8RX5Z6VQ4K2B9M3H6D7E1F"}</span><span><span className="muted-label">LATENCY</span> {isRunning ? "—" : isExternalContext ? "captured" : "842ms"}</span><span><span className="muted-label">CONTRACT</span> {activeTool?.name ?? "—"}</span></div>
         </section>
 
         <section className="panel agent-panel">
           <PanelHeading
             icon={<Code2 size={15} />}
             title="AGENT SURFACE"
-            suffix={<span className="surface-count">DOCUMENT.MODELCONTEXT</span>}
-            action={<span className={`surface-live ${support.supported ? "" : "is-local-label"}`}><CircleDot size={11} /> {support.supported ? "live" : "local"}</span>}
+            suffix={<span className="surface-count">{isExternalContext ? "CAPTURED EXTERNAL TOOL SURFACE" : "LIVE PLAYGROUND · DOCUMENT.MODELCONTEXT"}</span>}
+            action={<span className={`surface-live ${isExternalContext ? "is-captured-label" : support.supported ? "" : "is-local-label"}`}><CircleDot size={11} /> {isExternalContext ? "captured" : support.supported ? "live" : "local"}</span>}
           />
-          <div className="agent-toolbar"><span><Layers3 size={13} /> AVAILABLE TOOLS</span><span className="tool-count">{tools.length} exposed</span></div>
+          <div className="agent-toolbar"><span><Layers3 size={13} /> AVAILABLE TOOLS</span><span className="tool-count">{displayTools.length} exposed</span></div>
           <div className="tool-list">
-            {tools.map((tool) => {
+            {displayTools.map((tool) => {
               const selected = selectedTool === tool.name;
-              const active = path.includes(tool.name);
+              const active = displayPath.includes(tool.name);
+              const readOnly = tool.annotations?.readOnlyHint === true || tool.declaredEffects.length === 0;
               return (
                 <div key={tool.name} className={`tool-row ${selected ? "is-selected" : ""} ${active ? "is-path" : ""}`}>
                   <button className="tool-select" onClick={() => setSelectedTool(tool.name)} aria-label={`Inspect ${tool.name}`}>
                     <span className="tool-status"><CircleDot size={10} /></span>
                     <span className="tool-name">{tool.name}</span>
                   </button>
-                  <span className={`tool-mode ${tool.annotations.readOnlyHint ? "is-read" : "is-write"}`}>{tool.annotations.readOnlyHint ? "READ" : "WRITE"}</span>
-                  <button className="tool-run" onClick={() => void executeSingleTool(tool.name)} disabled={isRunning} title={`Execute ${tool.name}`}><Play size={11} fill="currentColor" /></button>
+                  <span className={`tool-mode ${readOnly ? "is-read" : "is-write"}`}>{readOnly ? "READ" : "WRITE"}</span>
+                  {!isExternalContext && <button className="tool-run" onClick={() => void executeSingleTool(tool.name)} disabled={isRunning} title={`Execute ${tool.name}`}><Play size={11} fill="currentColor" /></button>}
                 </div>
               );
             })}
           </div>
           <div className="tool-inspector">
-            <div className="inspector-topline"><span className="inspector-label"><Terminal size={13} /> TOOL CONTRACT</span><span className={`risk-label risk-${activeTool?.parallax.risk ?? "low"}`}>RISK / {activeTool?.parallax.risk.toUpperCase() ?? "—"}</span></div>
+            <div className="inspector-topline"><span className="inspector-label"><Terminal size={13} /> TOOL CONTRACT</span><span className={`risk-label risk-${toolRisk(activeTool)}`}>RISK / {toolRisk(activeTool).toUpperCase()}</span></div>
             <div className="inspector-name">{activeTool?.name ?? "Select a tool"}<span>()</span></div>
             <p className="inspector-description">{activeTool?.description}</p>
-            <div className="inspector-kv"><span>readOnlyHint</span><strong className={activeTool?.annotations.readOnlyHint ? "kv-pass" : "kv-fail"}>{String(activeTool?.annotations.readOnlyHint ?? false)}</strong></div>
-            <div className="inspector-kv"><span>semanticAction</span><strong>{activeTool?.parallax.semanticAction ?? "—"}</strong></div>
-            <div className="inspector-effects"><span>effects</span><div>{activeTool?.parallax.effects.map((effect) => <code key={effect}>{effect}</code>)}</div></div>
-            <button className="inspector-cta" onClick={() => void executeSingleTool(activeTool?.name ?? "")} disabled={isRunning || !activeTool}><Play size={12} fill="currentColor" /> Execute {activeTool?.name ?? "tool"}</button>
+            <div className="inspector-kv"><span>readOnlyHint</span><strong className={activeTool?.annotations?.readOnlyHint ? "kv-pass" : "kv-fail"}>{activeTool?.annotations?.readOnlyHint === undefined ? "unset" : String(activeTool.annotations.readOnlyHint)}</strong></div>
+            <div className="inspector-kv"><span>semanticAction</span><strong>{activeTool?.action ?? "—"}</strong></div>
+            <div className="inspector-effects"><span>declared effects</span><div>{activeTool?.declaredEffects.map((effect) => <code key={effect}>{effect}</code>)}</div></div>
+            <div className="inspector-effects"><span>observed effects</span><div>{audit.execution.filter((entry) => entry.toolName === activeTool?.name).flatMap((entry) => entry.observedEffects).map((observed) => <code key={`${observed.effect}-${observed.source}`}>{observed.effect} · {observed.source}</code>)}</div></div>
+            {isExternalContext ? <div className="captured-inspector-note"><CircleDot size={11} /> Captured fixture · invoke in the source environment to collect new evidence.</div> : <button className="inspector-cta" onClick={() => void executeSingleTool(activeTool?.name ?? "")} disabled={isRunning || !activeTool}><Play size={12} fill="currentColor" /> Execute {activeTool?.name ?? "tool"}</button>}
           </div>
           <div className="subpanel execution-log">
-            <div className="subpanel-heading"><span><Activity size={13} /> AGENT EXECUTION LOG</span><span className="live-label"><CircleDot size={10} /> live</span></div>
+            <div className="subpanel-heading"><span><Activity size={13} /> AGENT EXECUTION LOG</span><span className={`live-label ${isExternalContext ? "is-captured-label" : ""}`}><CircleDot size={10} /> {isExternalContext ? "captured" : "live"}</span></div>
             <div className="execution-list">
               {agentLogs.length === 0 && <div className="empty-log">Run the audit to stream tool execution.</div>}
               {agentLogs.map((entry, index) => (
@@ -644,7 +840,7 @@ function App() {
                 </article>
               ))}
             </div>
-            {mode === "broken" && <button className="patch-button" onClick={patchScenario}><WrenchGlyph /> Patch to FIXED <ArrowRight size={13} /></button>}
+            {!isExternalContext && mode === "broken" && <button className="patch-button" onClick={patchScenario}><WrenchGlyph /> Patch to FIXED <ArrowRight size={13} /></button>}
           </section>
 
           <section className="panel audit-panel matrix-panel">
@@ -662,7 +858,7 @@ function App() {
 
       <footer className="app-footer">
         <span>PARALLAX / Semantic supply chain inspection</span>
-        <span><span className="muted-label">MODE</span> {mode.toUpperCase()} <span className="footer-divider" /><span className="muted-label">WEBMCP</span> document.modelContext <span className="footer-divider" /><span className="muted-label">LOCAL REGISTRY</span> {registeredCount || 9} tools</span>
+        <span><span className="muted-label">MODE</span> {isExternalContext ? "CAPTURED VALIDATION" : mode.toUpperCase()} <span className="footer-divider" /><span className="muted-label">WEBMCP</span> {support.label} <span className="footer-divider" /><span className="muted-label">SURFACE</span> {displayedToolCount} tools</span>
         <button className="footer-link"><Copy size={12} /> Copy audit JSON</button>
       </footer>
     </main>

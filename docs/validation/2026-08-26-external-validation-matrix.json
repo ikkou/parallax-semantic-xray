@@ -1,0 +1,16 @@
+{
+  "matrix": "PARALLAX External Validation Matrix",
+  "validationDate": "2026-08-26",
+  "contractVersion": "Developer Contract v1",
+  "coreBaselineHash": "1388709e738e7aff0e27fabcc19cbbe758af9cf4e412315410aaf8ab7cac6a82",
+  "liveExecutionMeans": "Native WebMCP discovery and invocation in isolated Google Chrome 151, or the live local Playground runtime.",
+  "capturedExternalUiMeans": "The PARALLAX dashboard renders the stored contract and evidence without invoking the source application again.",
+  "rows": [
+    { "id": "subly-broken", "label": "Subly — BROKEN", "kind": "live-playground", "applicationId": "subly-playground", "source": "lib/playground/subly", "technicalStatus": "pass", "semanticStatus": "fail", "statuses": { "intent": "fail", "parity": "fail", "agency": "warning" }, "gapIds": ["intent-001", "parity-001", "parity-002", "agency-001"], "gapRules": ["forbidden-effect", "missing-confirmation-boundary", "semantic-overloading", "excess-agency"], "derivedFrom": "live Playground contract + runtime instrumentation" },
+    { "id": "subly-fixed", "label": "Subly — FIXED", "kind": "live-playground", "applicationId": "subly-playground", "source": "lib/playground/subly", "technicalStatus": "pass", "semanticStatus": "warning", "statuses": { "intent": "pass", "parity": "pass", "agency": "warning" }, "gapIds": ["agency-001"], "gapRules": ["excess-agency"], "derivedFrom": "live Playground contract + read-only execution evidence" },
+    { "id": "flight-search", "label": "Flight Search", "kind": "captured-external", "applicationId": "chrome-labs-flight-search", "source": "https://github.com/GoogleChromeLabs/webmcp-tools", "technicalStatus": "pass", "semanticStatus": "pass", "statuses": { "intent": "pass", "parity": "pass", "agency": "pass" }, "gapIds": [], "gapRules": [], "derivedFrom": "docs/validation/2026-08-26-flight-search.json" },
+    { "id": "cineflow", "label": "CineFlow", "kind": "captured-external", "applicationId": "chrome-labs-cineflow", "source": "https://github.com/GoogleChromeLabs/webmcp-tools", "technicalStatus": "pass", "semanticStatus": "warning", "statuses": { "intent": "pass", "parity": "pass", "agency": "warning" }, "gapIds": ["agency-001"], "gapRules": ["excess-agency"], "derivedFrom": "docs/validation/2026-08-26-cineflow.json" },
+    { "id": "order-tracking", "label": "Order Tracking", "kind": "captured-external", "applicationId": "chrome-labs-order-tracking", "source": "docs/validation/2026-08-26-order-tracking.json", "technicalStatus": "pass", "semanticStatus": "fail", "statuses": { "intent": "pass", "parity": "fail", "agency": "pass" }, "gapIds": ["parity-001"], "gapRules": ["missing-confirmation-boundary"], "derivedFrom": "docs/validation/2026-08-26-order-tracking.json" },
+    { "id": "independent-flight-booking", "label": "Independent · SkyHop Flights", "kind": "captured-external", "applicationId": "independent-webmcp-kit-flight-booking", "source": "docs/validation/2026-08-26-independent-webmcp-kit-flight.json", "technicalStatus": "pass", "semanticStatus": "warning", "statuses": { "intent": "pass", "parity": "pass", "agency": "warning" }, "gapIds": ["agency-001"], "gapRules": ["excess-agency"], "derivedFrom": "docs/validation/2026-08-26-independent-webmcp-kit-flight.json" }
+  ]
+}

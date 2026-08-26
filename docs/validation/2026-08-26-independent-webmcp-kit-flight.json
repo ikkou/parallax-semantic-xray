@@ -1,0 +1,95 @@
+{
+  "applicationId": "independent-webmcp-kit-flight-booking",
+  "source": "https://github.com/victorhuangwq/webmcp-kit/tree/main/examples/flight-booking",
+  "sourceCommit": "48c5ad53cb78bc3d7c94194f9c64514b19ed238a",
+  "runtimeUrl": "http://127.0.0.1:3011/",
+  "mode": "LIVE EXECUTION",
+  "validationDate": "2026-08-26",
+  "contractVersion": "Developer Contract v1",
+  "coreBaselineHash": "1388709e738e7aff0e27fabcc19cbbe758af9cf4e412315410aaf8ab7cac6a82",
+  "environment": {
+    "browser": "Google Chrome 151.0.7922.174",
+    "userAgentFamily": "HeadlessChrome/151.0.0.0",
+    "secureContext": true,
+    "flags": [
+      "--enable-features=WebMCP",
+      "--enable-blink-features=ModelContextAPI,ModelContextExecutorAPI"
+    ],
+    "nativeApis": ["document.modelContext", "registerTool", "getTools", "executeTool"],
+    "nativeTestingSurface": false,
+    "consoleErrors": []
+  },
+  "goal": "Find and review a nonstop SFO to JFK flight on 2026-04-14 for one passenger. Do not add travelers, purchase the flight, or charge payment.",
+  "guardrails": [
+    "Do not add traveler details.",
+    "Do not purchase the flight.",
+    "Do not charge payment or confirm a reservation."
+  ],
+  "contractAdapter": "lib/validation/independent/webmcp-kit-flight-booking.ts",
+  "provenance": [
+    "native-webmcp-discovery",
+    "native-webmcp-invocation",
+    "source-inspection",
+    "tool-result",
+    "developer-contract-adapter"
+  ],
+  "toolSnapshot": [
+    { "name": "addExtras", "description": "Configure add-on options like checked bags, seat selection, and insurance", "inputSchema": { "type": "object", "properties": { "checkedBags": { "type": "integer", "minimum": 0, "maximum": 6 }, "seatSelection": { "type": "boolean" }, "travelInsurance": { "type": "boolean" } }, "additionalProperties": false }, "annotations": null },
+    { "name": "addTraveler", "description": "Add a traveler profile to the current booking", "inputSchema": { "type": "object", "properties": { "firstName": { "type": "string" }, "lastName": { "type": "string" }, "age": { "type": "integer" } }, "required": ["firstName", "lastName", "age"], "additionalProperties": false }, "annotations": null },
+    { "name": "purchaseFlight", "description": "Finalize and purchase the current booking. Requires confirmation.", "inputSchema": { "type": "object", "properties": { "paymentMethod": { "type": "string", "enum": ["card", "wallet", "points"] }, "email": { "type": "string", "format": "email" } }, "required": ["paymentMethod", "email"], "additionalProperties": false }, "annotations": null },
+    { "name": "reviewBooking", "description": "Review current booking details and estimated total price", "inputSchema": { "type": "object", "properties": {}, "additionalProperties": false }, "annotations": null },
+    { "name": "searchFlights", "description": "Search available flights by route, date, passenger count, and cabin class", "inputSchema": { "type": "object", "properties": { "from": { "type": "string" }, "to": { "type": "string" }, "date": { "type": "string" }, "passengers": { "type": "integer" }, "cabin": { "type": "string", "enum": ["economy", "premium", "business"] } }, "required": ["from", "to", "date", "passengers", "cabin"], "additionalProperties": false }, "annotations": null },
+    { "name": "selectFlight", "description": "Select one flight from the search results", "inputSchema": { "type": "object", "properties": { "flightId": { "type": "string", "description": "Flight ID returned by searchFlights (e.g., SF301)" } }, "required": ["flightId"], "additionalProperties": false }, "annotations": null }
+  ],
+  "executionEvidence": [
+    {
+      "toolName": "searchFlights",
+      "input": { "from": "SFO", "to": "JFK", "date": "2026-04-14", "passengers": 1, "cabin": "economy" },
+      "technicalStatus": "success",
+      "observedEffects": [],
+      "result": { "matches": [{ "flightId": "SF301", "stops": 0, "price": 289 }, { "flightId": "SF919", "stops": 1, "price": 254 }] },
+      "resultSummary": "Native invocation returned two SFO → JFK matches; SF301 was nonstop at $289 and SF919 had one stop at $254."
+    },
+    {
+      "toolName": "selectFlight",
+      "input": { "flightId": "SF301" },
+      "technicalStatus": "success",
+      "observedEffects": [],
+      "result": { "selected": "SF301", "route": "SFO-JFK", "time": "08:10–16:45", "stops": 0 },
+      "resultSummary": "Native invocation selected SF301, SFO-JFK, 08:10–16:45 nonstop."
+    },
+    {
+      "toolName": "reviewBooking",
+      "input": {},
+      "technicalStatus": "success",
+      "observedEffects": [],
+      "result": { "selected": "SF301", "estimatedTotal": 289, "travelers": [], "extras": {} },
+      "resultSummary": "Native invocation returned the selected flight and estimated total $289; travelers remained empty and purchase was not invoked."
+    }
+  ],
+  "auditResult": {
+    "statuses": { "intent": "pass", "parity": "pass", "agency": "warning" },
+    "technicalStatus": "pass",
+    "semanticStatus": "warning",
+    "gapIds": ["agency-001"],
+    "gapRules": ["excess-agency"],
+    "findings": [
+      {
+        "id": "agency-001",
+        "title": "EXCESS AGENCY",
+        "severity": "medium",
+        "evidence": [
+          "Required actions: search_flights, select_flight, review_booking",
+          "Extra mutation capability: addTraveler (add_traveler)",
+          "Extra mutation capability: addExtras (configure_extras)",
+          "Extra mutation capability: purchaseFlight (purchase_flight)"
+        ]
+      }
+    ]
+  },
+  "limitations": [
+    "The example exposes native tools with null annotations; semantic effects and the purchase confirmation boundary are supplied by the PARALLAX adapter from source inspection.",
+    "The purchase path was intentionally not invoked because the selected goal forbids purchase and payment; the source implementation documents requestUserInteraction inside purchaseFlight.",
+    "The runtime was a local clone of the independently authored example, not a public deployment of PARALLAX."
+  ]
+}

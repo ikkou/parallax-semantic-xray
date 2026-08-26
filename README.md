@@ -4,77 +4,47 @@
 
 > **200 OK. Semantically wrong.**
 
-![PARALLAX BROKEN audit](docs/parallax-broken-audit.png)
+[![PARALLAX BROKEN audit](docs/parallax-broken-audit.png)](https://parallax-semantic-xray.heavenchan.chatgpt.site/)
 
-WebMCP gives websites a second interface: a structured tool surface for agents alongside the visual interface for humans.
+PARALLAX is a reusable semantic testing layer for WebMCP applications that detects when human intent and agent execution diverge.
 
-PARALLAX detects when those two interfaces disagree.
+WebMCP gives a website a second semantic interface: a structured Agent Surface alongside the Human Surface. PARALLAX tests whether those two surfaces preserve the same:
 
-Ordinary execution testing can report success even when the user's intent has been violated.
-PARALLAX asks a different question:
+- intent;
+- meaning;
+- capabilities; and
+- safety and confirmation boundaries.
 
-> Did the user's intent survive execution?
+The public production candidate is available at [parallax-semantic-xray.heavenchan.chatgpt.site](https://parallax-semantic-xray.heavenchan.chatgpt.site/).
 
-## The semantic execution chain
+## From Playground to Testing Layer
 
-```text
-Human Intent
-     ↓
-Agent Interpretation
-     ↓
-WebMCP Tool Selection
-     ↓
-Tool Contract
-     ↓
-Execution
-     ↓
-Semantic Outcome
-```
-
-## A missing test layer for the agentic web
-
-Traditional web applications have functional testing, accessibility testing, and security testing.
-
-Agent-enabled web applications add another interface: the semantic tool surface exposed to agents.
-
-PARALLAX explores **semantic parity testing**: checking whether the human-facing and agent-facing interfaces preserve the same intent, meaning, capabilities, and safety boundaries.
-
-This project presents a testing category and a concrete controlled experiment.
-It does not claim to define an industry standard.
-
-## The controlled experiment
-
-The same goal is used before and after the fix:
+Subly is PARALLAX's controlled **LIVE PLAYGROUND** and reference implementation. It demonstrates the same user goal before and after a semantic fix:
 
 ```text
 Compare the Free and Pro plans and recommend the best option.
 Don't make any changes to my subscription.
 ```
 
-### BROKEN
+The BROKEN path succeeds technically:
 
 ```text
 inspect_plan()
 → compare_plans()
 → recommended_upgrade()
-→ HTTP 200 OK
+→ HTTP 200
 → Pro activated
 → $20 charged
 ```
 
+The result is:
+
 ```text
-Technical result: SUCCESS
-Semantic result: FAIL
+TECHNICAL RESULT: PASS
+SEMANTIC RESULT: FAIL / INTENT VIOLATED
 ```
 
-PARALLAX identifies four gaps:
-
-- **Intent Violation**: the user prohibited subscription changes, but the selected tool changed the plan.
-- **Semantic Overloading**: `recommended_upgrade()` combines recommendation with purchase and state mutation.
-- **Missing Agent Review Boundary**: the Human Surface has a review step that the Agent Surface does not expose.
-- **Excess Agency**: the goal requires reading and recommending, but purchase and cancellation paths are also exposed.
-
-### FIXED
+The FIXED path separates recommendation from mutation:
 
 ```text
 inspect_plan()
@@ -84,31 +54,203 @@ inspect_plan()
 → no subscription mutation
 ```
 
+The fixed result is `Intent PASS`, `Parity PASS`, and `Agency WARN`. The warning is intentional: purchase and cancellation tools remain exposed even though the current goal only requires reading and recommending.
+
+Subly-specific behavior lives under [`lib/playground/subly/`](lib/playground/subly/). The reusable Core contains no subscription, payment, file, booking, or movie-ticket rules. It reasons over domain-opaque Semantic Actions, Effects, boundaries, and evidence.
+
+The Core was frozen before external validation. Its first baseline is:
+
 ```text
-Intent: PASS
-Parity: PASS
-Agency: PASS
+Developer Contract v1
+Core SHA-256:
+1388709e738e7aff0e27fabcc19cbbe758af9cf4e412315410aaf8ab7cac6a82
 ```
 
-The goal is unchanged.
-Only the tool surface changes: recommendation becomes read-only, purchase becomes explicit, and the review boundary remains visible.
+The same frozen Core has been applied to WebMCP applications PARALLAX did not author, without adding application-specific branches.
+
+## Declared → Observed → Derived
+
+PARALLAX keeps three evidence layers separate:
+
+```text
+DECLARED
+Human intent
+Human boundaries
+WebMCP tool contracts
+
+        ↓
+
+OBSERVED
+Native tool execution
+Runtime effects
+State changes
+Technical result
+
+        ↓
+
+DERIVED
+Intent
+Parity
+Agency
+Semantic outcome
+```
+
+A WebMCP declaration such as `readOnlyHint: true` is declared evidence, not proof. Runtime instrumentation, state diffs, or tool-result evidence can contradict it. A declaration/observation mismatch is then a derived finding.
+
+See [Developer Contract v1](docs/DEVELOPER_CONTRACT_V1.md) for the complete contract and provenance model.
+
+## The six generic rules
+
+The pure Core evaluates six rules:
+
+1. `forbidden-effect` — observed effects intersect the intent's forbidden effects.
+2. `missing-required-action` — completed evidence does not demonstrate a required action; incomplete evidence is `WARN`.
+3. `declaration-observation-mismatch` — a declared behavior, such as read-only, contradicts observed effects.
+4. `missing-confirmation-boundary` — the Human Surface protects an exposed mutation but the Agent Surface has no equivalent boundary.
+5. `semantic-overloading` — one Agent Tool combines actions that the Human Surface keeps separate around a meaningful boundary.
+6. `excess-agency` — unnecessary state-changing capabilities are exposed for the current intent.
+
+The Core returns `PASS`, `WARN`, or `FAIL` from declared and observed evidence. Missing evidence never becomes `PASS`, and recommendations are derived from finding types rather than from a fixed Subly list.
+
+## Validated Against WebMCP Applications We Didn't Author
+
+The validation records live under [`docs/validation/`](docs/validation/). The dashboard's Application Selector renders the same `AuditResult` for the live Subly Playground and captured external records.
+
+| Context | Intent | Parity | Agency | Semantic |
+| --- | --- | --- | --- | --- |
+| Subly BROKEN | FAIL | FAIL | WARN | FAIL |
+| Subly FIXED | PASS | PASS | WARN | WARN |
+| Flight Search | PASS | PASS | PASS | PASS |
+| CineFlow | PASS | PASS | WARN | WARN |
+| Order Tracking | PASS | FAIL | PASS | FAIL |
+| Independent SkyHop | PASS | PASS | WARN | WARN |
+
+The matrix is derived from the adapters and audit results in [`lib/validation/matrix.ts`](lib/validation/matrix.ts). The machine-readable roll-up is [`2026-08-26-external-validation-matrix.json`](docs/validation/2026-08-26-external-validation-matrix.json).
+
+### Flight Search
+
+[Official Chrome Labs example](https://github.com/GoogleChromeLabs/webmcp-tools). This is the read-heavy PASS baseline:
+
+```text
+Intent PASS
+Parity PASS
+Agency PASS
+```
+
+PARALLAX can return a clean PASS and does not manufacture findings.
+
+Record: [`2026-08-26-flight-search.json`](docs/validation/2026-08-26-flight-search.json)
+
+### CineFlow
+
+[Official Chrome Labs example](https://github.com/GoogleChromeLabs/webmcp-tools). The tested goal completed without an intent or parity violation, while an additional state-changing capability was exposed beyond the actions required by that goal.
+
+```text
+Intent PASS
+Parity PASS
+Agency WARN
+```
+
+Record: [`2026-08-26-cineflow.json`](docs/validation/2026-08-26-cineflow.json)
+
+### Order Tracking
+
+[Official Chrome Labs example](https://github.com/GoogleChromeLabs/webmcp-tools/tree/main/demos/order-tracking). Native invocation successfully initiated a return. The Human Surface contained a `Confirm Return` boundary, while the Agent Surface exposed return initiation without an equivalent boundary.
+
+```text
+Intent PASS
+Parity FAIL
+Agency PASS
+```
+
+This is a semantic design observation, not a security claim.
+
+Record: [`2026-08-26-order-tracking.json`](docs/validation/2026-08-26-order-tracking.json)
+
+### Independent SkyHop
+
+The independently authored [`webmcp-kit`](https://github.com/victorhuangwq/webmcp-kit) flight-booking example was inspected and executed in an isolated native WebMCP environment. Search, selection, and review passed; traveler, extras, and purchase mutation tools remained exposed for the read/review goal.
+
+```text
+Intent PASS
+Parity PASS
+Agency WARN
+```
+
+Record: [`2026-08-26-independent-webmcp-kit-flight.json`](docs/validation/2026-08-26-independent-webmcp-kit-flight.json)
+
+## How Developers Use PARALLAX
+
+The current integration model is developer instrumentation inside or alongside a WebMCP application:
+
+```text
+integrate
+→ define semantic contract
+→ instrument observable effects
+→ define goal + guardrails
+→ run audit
+→ inspect X-Ray
+→ fix
+→ rerun
+→ ship
+```
+
+PARALLAX does not claim to infer complete Human Surface semantics automatically from arbitrary DOM or natural language. Semantic correctness is based on explicit contracts and runtime evidence rather than unsupported model guesses.
+
+The minimal local/module integration shape is:
+
+```ts
+import { runSemanticAudit } from "./lib/core";
+import type { DeveloperContract } from "./lib/core/contract";
+import type { ExecutionEvidence } from "./lib/core/evidence";
+
+const contract: DeveloperContract = {
+  applicationId: "my-webmcp-app",
+  intent: {
+    goal: "Inspect files without deleting anything.",
+    requiredActions: ["inspect_files"],
+    forbiddenEffects: ["delete_file"],
+  },
+  humanSurface: {
+    actions: [{ id: "inspect", action: "inspect_files", effects: [] }],
+    boundaries: [],
+  },
+  agentSurface: {
+    tools: [{
+      name: "inspect_files",
+      description: "Inspect files.",
+      inputSchema: { type: "object" },
+      action: "inspect_files",
+      declaredEffects: [],
+      annotations: { readOnlyHint: true },
+    }],
+    boundaries: [],
+  },
+};
+
+const evidence: ExecutionEvidence[] = [{
+  toolName: "inspect_files",
+  technicalStatus: "success",
+  statusCode: 200,
+  observedEffects: [],
+}];
+
+const audit = runSemanticAudit(contract, evidence, { executionComplete: true });
+```
+
+This is a local/module example. PARALLAX is not published as an npm package yet.
 
 ## Why WebMCP?
 
-Without WebMCP, an agent usually infers capabilities from the human UI or from external APIs.
+Most WebMCP demos ask:
 
-With WebMCP, the website itself exposes a structured semantic interface that an agent can discover, inspect, and invoke.
+> “What can an agent do on this website?”
 
-That creates a testable dual-interface artifact:
+PARALLAX asks:
 
-```text
-Human Surface ↔ Agent Surface
-```
+> “Did the website mean the same thing to the human and the agent?”
 
-PARALLAX depends on this structure.
-WebMCP is not an unrelated integration added after the fact; it is the reason this parity problem exists.
-
-PARALLAX also exposes its own audit tools:
+WebMCP creates the structured Agent Surface that PARALLAX audits. PARALLAX also exposes its own native WebMCP tools:
 
 ```text
 inspect_surface
@@ -118,203 +260,55 @@ list_gaps
 explain_gap
 ```
 
-This is WebMCP auditing WebMCP.
+**WebMCP auditing WebMCP.**
 
-## Architecture
+The browser adapter keeps native registration, discovery, execution, support detection, and application-scoped local mirrors outside the pure Core. See [`lib/integration/webmcp/`](lib/integration/webmcp/).
 
-```text
-                 PARALLAX
+## A Missing Test Layer for the Agentic Web
 
- Human Surface               Agent Surface
-      │                            │
-      │                       WebMCP Tools
-      │                            │
-      └────── Semantic X-Ray ──────┘
-                     │
-              Audit Engine
-                     │
-          ┌──────────┼──────────┐
-        Intent     Parity     Agency
-```
-
-The implementation is intentionally small:
-
-- `app/parallax-app.tsx` renders the three-column dashboard and the broken/fixed demo.
-- `lib/audit.ts` contains the deterministic audit model, semantic trace, findings, recommendations, and capability matrix.
-- `lib/demoRuntime.ts` simulates the Subly plan state and payment effect in memory.
-- `lib/webmcp/` registers browser tools, detects WebMCP support, and defines PARALLAX's audit tools.
-- `scripts/prepare-sites.mjs` packages the static Next.js export for the current Sites deployment contract.
-
-## Real WebMCP validation
-
-The following was tested through the browser's native `document.modelContext` surface, not only through the internal simulator.
-
-Environment:
-
-- Google Chrome `151.0.7922.174` on macOS.
-- Production HTTPS URL with `secureContext: true`.
-- WebMCP enabled with `--enable-features=WebMCP`.
-- ModelContext APIs enabled with `--enable-blink-features=ModelContextAPI,ModelContextExecutorAPI`.
-- `document.modelContext`, `registerTool`, `getTools`, and `executeTool` were all present.
-- `navigator.modelContextTesting` was not required and was not present as an active testing surface.
-
-The Codex in-app browser did not expose WebMCP during this validation.
-The results below come from the isolated Chrome 151 environment above.
-
-### Discovered tools
-
-BROKEN:
+Traditional web development already has:
 
 ```text
-cancel_plan
-compare_plans
-explain_gap
-inspect_plan
-inspect_surface
-list_gaps
-recommended_upgrade
-run_parity_audit
-trace_goal
+functional testing
+accessibility testing
+security testing
 ```
 
-FIXED:
+WebMCP adds a structured Agent Surface. PARALLAX explores **semantic parity testing** as a proposed testing category for checking whether human-facing and agent-facing interfaces preserve the same meaning and safety boundaries. This is an experimental product category, not an established industry standard.
 
-```text
-cancel_plan
-compare_plans
-explain_gap
-inspect_plan
-inspect_surface
-list_gaps
-purchase_plan
-recommend_plan
-run_parity_audit
-trace_goal
-```
+## Production candidate
 
-The required PARALLAX tool schemas were inspected as follows:
+The current public candidate is the existing [PARALLAX production URL](https://parallax-semantic-xray.heavenchan.chatgpt.site/). It contains:
 
-```text
-inspect_surface: {}
-run_parity_audit: { goal: string }
-trace_goal: { goal: string }
-list_gaps: {}
-explain_gap: { gap_id: string }
-```
+- the reusable semantic Core and Developer Contract v1;
+- provenance-aware execution evidence;
+- the Subly BROKEN/FIXED LIVE PLAYGROUND;
+- the Application Selector and data-driven External Validation Matrix;
+- Flight Search, CineFlow, Order Tracking, and Independent SkyHop records; and
+- actual PARALLAX WebMCP tools.
 
-The Chrome 151 invocation used the registered tool object returned by `getTools()`:
+The UI labels stored external evidence as **CAPTURED EXTERNAL VALIDATION**. It does not imply that the external source application is being executed inside PARALLAX.
 
-```js
-const tools = await document.modelContext.getTools();
-const tool = tools.find(({ name }) => name === "run_parity_audit");
-const result = await document.modelContext.executeTool(
-  tool,
-  JSON.stringify({ goal }),
-);
-const audit = JSON.parse(result);
-```
+## Future work
 
-### Actual BROKEN result
+Possible next phases include:
 
-```json
-{
-  "mode": "broken",
-  "statuses": {
-    "intent": "fail",
-    "parity": "fail",
-    "agency": "warning"
-  },
-  "path": [
-    "inspect_plan",
-    "compare_plans",
-    "recommended_upgrade"
-  ],
-  "gapIds": [
-    "intent-001",
-    "parity-001",
-    "parity-002",
-    "agency-001"
-  ]
-}
-```
+- phase-aware semantic surface snapshots;
+- package distribution;
+- CI and pull-request checks;
+- richer effect observation;
+- additional independent WebMCP validation; and
+- developer tooling integrations.
 
-The visible UI updated after the native invocation.
-It showed the execution log entry `WebMCP invocation · structured result returned`, `SUCCESS / HTTP 200`, and `FAIL / INTENT VIOLATED`.
+These are future directions, not part of the current candidate. PARALLAX does not currently provide zero-config arbitrary URL scanning, automatic universal semantic inference, npm distribution, CI integration, a Chrome extension, or SaaS accounts.
 
-### Actual FIXED result
+## Scope and limitations
 
-```json
-{
-  "mode": "fixed",
-  "statuses": {
-    "intent": "pass",
-    "parity": "pass",
-    "agency": "pass"
-  },
-  "path": [
-    "inspect_plan",
-    "compare_plans",
-    "recommend_plan"
-  ],
-  "gapIds": []
-}
-```
+The current product claim is deliberately narrow:
 
-The same goal returned a read-only recommendation and the visible UI showed `PASS / HTTP 200` and `PASS / AGENCY PRESERVED`.
+> **A working reusable semantic testing layer for instrumented WebMCP applications, validated against both controlled and independently authored applications.**
 
-## Reproduce the demo
-
-### Live app
-
-<https://parallax-semantic-xray.heavenchan.chatgpt.site/>
-
-### Standard browser
-
-Open the live app in a current browser.
-The dashboard is fully viewable and the local simulator supports the same BROKEN/FIXED product flow.
-
-### WebMCP-enabled Chrome
-
-WebMCP is experimental in the tested Chrome build.
-Use a clean Chrome profile with the feature flags enabled:
-
-```bash
-open -na "Google Chrome" --args \
-  --user-data-dir="$TMPDIR/parallax-webmcp-profile" \
-  --no-first-run \
-  --no-default-browser-check \
-  --enable-features=WebMCP \
-  --enable-blink-features=ModelContextAPI,ModelContextExecutorAPI \
-  https://parallax-semantic-xray.heavenchan.chatgpt.site/
-```
-
-Then:
-
-1. Confirm the header says `WebMCP live`.
-2. Discover tools with `await document.modelContext.getTools()`.
-3. Invoke `run_parity_audit` with the exact goal above.
-4. Inspect the center trace: technical success, semantic failure, and drift beginning at tool selection.
-5. Switch to `FIXED`.
-6. Invoke `run_parity_audit` again with the unchanged goal.
-7. Confirm Intent, Parity, and Agency are all `pass`.
-
-## Limitations
-
-The current scope is deliberately a controlled subscription application.
-
-PARALLAX does not yet:
-
-- crawl arbitrary third-party websites;
-- define a universal semantic scoring standard;
-- replace WebMCP security testing;
-- replace probabilistic agent evaluations;
-- perform real billing or account mutations.
-
-These are scope boundaries for the challenge submission, not promises of the current P0.
-
-The WebMCP API is browser-dependent.
-In Chrome 151, `executeTool` required a RegisteredTool object and a JSON-encoded input string in this validation.
-The production page has no origin-trial token; the tested browser required the feature flags above.
+PARALLAX currently relies on developer-supplied semantic contracts and observable runtime evidence. It does not claim universal semantic correctness or automatic DOM understanding.
 
 ## Local development
 
@@ -328,11 +322,15 @@ Open <http://localhost:3000>.
 Validation:
 
 ```bash
-npm run lint
+npm run test:core
 npm run typecheck
+npm run lint
 npm run build
+git diff --check
 ```
+
+See [Developer Contract v1](docs/DEVELOPER_CONTRACT_V1.md), [External Validation Plan](docs/EXTERNAL_VALIDATION_PLAN.md), and the [native WebMCP validation record](docs/validation/2026-08-26-native-webmcp.json) for the detailed evidence boundary.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT

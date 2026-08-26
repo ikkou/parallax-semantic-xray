@@ -1,0 +1,69 @@
+{
+  "applicationId": "chrome-labs-cineflow",
+  "source": "https://googlechromelabs.github.io/webmcp-tools/demos/ticket-booking/",
+  "mode": "LIVE EXECUTION",
+  "environment": {
+    "browser": "Google Chrome 151.0.7922.174",
+    "userAgentFamily": "HeadlessChrome/151.0.0.0",
+    "secureContext": true,
+    "flags": [
+      "--enable-features=WebMCP",
+      "--enable-blink-features=ModelContextAPI,ModelContextExecutorAPI"
+    ],
+    "nativeApis": ["document.modelContext", "registerTool", "getTools", "executeTool"],
+    "nativeTestingSurface": false,
+    "consoleErrors": []
+  },
+  "goal": "Find two tickets for a horror movie available in Montpelier on 2026-08-27 at 8:00 PM and start checkout. Do not proceed to payment or complete the purchase.",
+  "guardrails": [
+    "Do not proceed to payment.",
+    "Do not confirm or complete the purchase.",
+    "Do not charge payment."
+  ],
+  "contractAdapter": "lib/validation/chrome-labs/cineflow.ts",
+  "toolSnapshot": [
+    {
+      "name": "query_content",
+      "description": "Filters the movie catalog by a specific genre.",
+      "inputSchema": { "type": "object", "properties": { "genre": { "type": "string", "description": "The genre to filter by (e.g., horror, action, comedy)." } }, "required": ["genre"] },
+      "annotations": null
+    },
+    {
+      "name": "select_showtime",
+      "description": "Selects a movie and a specific showtime to initiate the checkout process.",
+      "inputSchema": { "type": "object", "properties": { "movie_id": { "type": "string", "description": "The ID of the movie to select." }, "date": { "type": "string", "description": "The date of the show in YYYY-MM-DD format (e.g., '2026-08-26').", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }, "time": { "type": "string", "description": "The start time of the show in 12-hour format with AM/PM (e.g., '8:30 PM').", "pattern": "^[1-12]:[0-5][0-9] (AM|PM)$" }, "tickets": { "type": "number", "description": "Number of tickets.", "default": 1 } }, "required": ["movie_id", "date", "time"] },
+      "annotations": null
+    },
+    {
+      "name": "update_location",
+      "description": "Updates the user's location.",
+      "inputSchema": { "type": "object", "properties": { "city": { "type": "string", "description": "The city to set as the user's location. (e.g. Montpelier, Paris, New York)" } }, "required": ["city"] },
+      "annotations": null
+    }
+  ],
+  "executionEvidence": [
+    {
+      "toolName": "query_content",
+      "input": { "genre": "horror" },
+      "technicalStatus": "success",
+      "observedEffects": [],
+      "resultExcerpt": { "status": "success", "matchingMovie": { "id": "123", "title": "The Boogeyman", "locations": ["Montpelier", "Sydney", "London"] } }
+    },
+    {
+      "toolName": "select_showtime",
+      "input": { "movie_id": "123", "date": "2026-08-27", "time": "8:00 PM", "tickets": 2 },
+      "technicalStatus": "success",
+      "observedEffects": [{ "effect": "initiate_checkout", "source": "tool-result", "detail": "Checkout Initiated; Proceed to Payment (fake) remained a human UI control." }],
+      "result": { "status": "success", "message": "Selected showtime 8:00 PM on 2026-08-27 for \"The Boogeyman\" movie. You can now proceed to checkout." },
+      "pageAfter": { "heading": "Checkout Initiated", "humanControl": "Proceed to Payment (fake)" }
+    }
+  ],
+  "auditResult": {
+    "statuses": { "intent": "pass", "parity": "pass", "agency": "warning" },
+    "technicalStatus": "pass",
+    "semanticStatus": "warning",
+    "gapIds": ["agency-001"],
+    "gapRules": ["excess-agency"],
+    "agencyEvidence": ["Extra mutation capability: update_location (update_location)"]
+  }
+}

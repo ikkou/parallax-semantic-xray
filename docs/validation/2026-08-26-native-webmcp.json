@@ -1,0 +1,80 @@
+{
+  "validation": "post-refactor native WebMCP",
+  "mode": "LIVE EXECUTION",
+  "environment": {
+    "browser": "Google Chrome 151.0.7922.174",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36",
+    "url": "http://127.0.0.1:3000/",
+    "secureContext": true,
+    "flags": [
+      "--enable-features=WebMCP",
+      "--enable-blink-features=ModelContextAPI,ModelContextExecutorAPI"
+    ],
+    "nativeApis": { "documentModelContext": true, "registerTool": true, "getTools": true, "executeTool": true },
+    "nativeTestingSurface": false,
+    "consoleErrors": []
+  },
+  "requiredParallaxTools": {
+    "schemas": [
+      { "name": "inspect_surface", "description": "Inspect the declared human surface, agent surface, boundaries, and current application state.", "inputSchema": { "type": "object", "properties": {}, "additionalProperties": false } },
+      { "name": "run_parity_audit", "description": "Run the semantic audit against the declared contract and captured execution evidence.", "inputSchema": { "type": "object", "properties": { "goal": { "type": "string", "description": "The user's intended goal." } }, "required": ["goal"], "additionalProperties": false } },
+      { "name": "trace_goal", "description": "Trace a goal through declared intent, tool selection, tool contract, execution, and semantic outcome.", "inputSchema": { "type": "object", "properties": { "goal": { "type": "string", "description": "The goal to trace." } }, "required": ["goal"], "additionalProperties": false } },
+      { "name": "list_gaps", "description": "List semantic findings derived from the current contract and execution evidence.", "inputSchema": { "type": "object", "properties": {}, "additionalProperties": false } },
+      { "name": "explain_gap", "description": "Explain one semantic finding using its stable finding ID.", "inputSchema": { "type": "object", "properties": { "gap_id": { "type": "string", "description": "Finding ID, for example intent-001." } }, "required": ["gap_id"], "additionalProperties": false } }
+    ]
+  },
+  "broken": {
+    "discoveredTools": ["cancel_plan", "compare_plans", "explain_gap", "inspect_plan", "inspect_surface", "list_gaps", "recommended_upgrade", "run_parity_audit", "trace_goal"],
+    "runParityAudit": {
+      "structuredResultType": "string containing JSON object",
+      "goal": "Compare the Free and Pro plans and recommend the best option. Don't make any changes to my subscription.",
+      "applicationId": "subly-playground",
+      "statuses": { "intent": "fail", "parity": "fail", "agency": "warning" },
+      "technicalStatus": "pass",
+      "semanticStatus": "fail",
+      "path": ["inspect_plan", "compare_plans", "recommended_upgrade"],
+      "gapIds": ["intent-001", "parity-001", "parity-002", "agency-001"]
+    },
+    "visibleUi": {
+      "webmcpLive": true,
+      "nativeInvocationLogged": true,
+      "technicalExecution": "PASS / HTTP 200",
+      "semanticOutcome": "FAIL / INTENT VIOLATED",
+      "mutationVisible": true,
+      "runtimeState": "Pro activated and $20 charged"
+    }
+  },
+  "fixed": {
+    "discoveredTools": ["cancel_plan", "compare_plans", "explain_gap", "inspect_plan", "inspect_surface", "list_gaps", "purchase_plan", "recommend_plan", "run_parity_audit", "trace_goal"],
+    "runParityAudit": {
+      "structuredResultType": "string containing JSON object",
+      "goal": "Compare the Free and Pro plans and recommend the best option. Don't make any changes to my subscription.",
+      "applicationId": "subly-playground",
+      "statuses": { "intent": "pass", "parity": "pass", "agency": "warning" },
+      "technicalStatus": "pass",
+      "semanticStatus": "warning",
+      "path": ["inspect_plan", "compare_plans", "recommend_plan"],
+      "gapIds": ["agency-001"]
+    },
+    "visibleUi": {
+      "webmcpLive": true,
+      "nativeInvocationLogged": true,
+      "technicalExecution": "PASS / HTTP 200",
+      "semanticOutcome": "PASS / AGENCY WARN",
+      "mutationVisible": false,
+      "runtimeState": "Demo reset. No plan change or payment has occurred."
+    }
+  },
+  "applicationScopedRegistry": {
+    "inspectSurfaceApplicationId": "subly-playground",
+    "brokenToFixedToolReplacement": true,
+    "fixedToBrokenToolReplacement": true,
+    "resetAndRerun": {
+      "path": ["inspect_plan", "compare_plans", "recommended_upgrade"],
+      "statuses": { "intent": "fail", "parity": "fail", "agency": "warning" },
+      "technicalStatus": "pass",
+      "visibleNativeInvocationAfterRerun": true
+    }
+  },
+  "runner": "scripts/validate-native-webmcp.mjs"
+}

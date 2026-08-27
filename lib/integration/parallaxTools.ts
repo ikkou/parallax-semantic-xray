@@ -14,6 +14,15 @@ export type ParallaxToolContext = {
   onAudit?: (result: AuditResult) => void;
 };
 
+function requireNonEmptyString(input: Record<string, unknown> | null | undefined, field: string) {
+  const value = input?.[field];
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`INVALID_ARGUMENT: ${field} must be a non-empty string.`);
+  }
+
+  return value.trim();
+}
+
 function auditForGoal(context: ParallaxToolContext, goal: string) {
   const contract: DeveloperContract = {
     ...context.contract,
@@ -46,14 +55,20 @@ export function getParallaxTools(getContext: () => ParallaxToolContext): Registe
       description: "Run the semantic audit against the declared contract and captured execution evidence.",
       inputSchema: {
         type: "object",
-        properties: { goal: { type: "string", description: "The user's intended goal." } },
+        properties: {
+          goal: {
+            type: "string",
+            minLength: 1,
+            description: "The user's intended goal. It must contain at least one non-whitespace character.",
+          },
+        },
         required: ["goal"],
         additionalProperties: false,
       },
       annotations: { readOnlyHint: true },
       execute: async (input) => {
         const context = getContext();
-        const goal = typeof input.goal === "string" ? input.goal : context.contract.intent.goal;
+        const goal = requireNonEmptyString(input, "goal");
         const result = auditForGoal(context, goal);
         context.onAudit?.(result);
         return result;
@@ -64,14 +79,20 @@ export function getParallaxTools(getContext: () => ParallaxToolContext): Registe
       description: "Trace a goal through declared intent, tool selection, tool contract, execution, and semantic outcome.",
       inputSchema: {
         type: "object",
-        properties: { goal: { type: "string", description: "The goal to trace." } },
+        properties: {
+          goal: {
+            type: "string",
+            minLength: 1,
+            description: "The goal to trace. It must contain at least one non-whitespace character.",
+          },
+        },
         required: ["goal"],
         additionalProperties: false,
       },
       annotations: { readOnlyHint: true },
       execute: async (input) => {
         const context = getContext();
-        const goal = typeof input.goal === "string" ? input.goal : context.contract.intent.goal;
+        const goal = requireNonEmptyString(input, "goal");
         return auditForGoal(context, goal).steps;
       },
     },
@@ -87,14 +108,25 @@ export function getParallaxTools(getContext: () => ParallaxToolContext): Registe
       description: "Explain one semantic finding using its stable finding ID.",
       inputSchema: {
         type: "object",
-        properties: { gap_id: { type: "string", description: "Finding ID, for example intent-001." } },
+        properties: {
+          gap_id: {
+            type: "string",
+            minLength: 1,
+            description: "Finding ID, for example intent-001. It must be non-empty.",
+          },
+        },
         required: ["gap_id"],
         additionalProperties: false,
       },
       annotations: { readOnlyHint: true },
       execute: async (input) => {
-        const gap = getContext().audit.gaps.find((item) => item.id === input.gap_id);
-        return gap ?? { error: "Finding not found", gap_id: input.gap_id };
+        const gapId = requireNonEmptyString(input, "gap_id");
+        const gap = getContext().audit.gaps.find((item) => item.id === gapId);
+        return gap ?? {
+          error: "NOT_FOUND",
+          message: `No semantic finding exists for gap_id ${gapId}.`,
+          gap_id: gapId,
+        };
       },
     },
   ];

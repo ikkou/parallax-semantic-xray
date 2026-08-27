@@ -345,7 +345,7 @@ npm run build
 git diff --check
 ```
 
-See [Developer Contract v1](docs/DEVELOPER_CONTRACT_V1.md), [External Validation Plan](docs/EXTERNAL_VALIDATION_PLAN.md), the [current production validation matrix](docs/validation/2026-08-27-production-validation-matrix.json), the [local native WebMCP validation record](docs/validation/2026-08-26-native-webmcp.json), and the [production HTTPS native WebMCP validation record](docs/validation/2026-08-27-native-webmcp-production.json) for the detailed evidence boundary. The production review captures are in [docs/validation/screenshots](docs/validation/screenshots/).
+See [Developer Contract v1](docs/DEVELOPER_CONTRACT_V1.md), [External Validation Plan](docs/EXTERNAL_VALIDATION_PLAN.md), the [current production validation matrix](docs/validation/2026-08-27-production-validation-matrix.json), the [local native WebMCP validation record](docs/validation/2026-08-26-native-webmcp.json), the [pre-update production record](docs/validation/2026-08-27-native-webmcp-production.json), and the [post-update production regression record](docs/validation/2026-08-27-native-webmcp-production-update.json) for the detailed evidence boundary. The production review captures are in [docs/validation/screenshots](docs/validation/screenshots/).
 
 ## License
 

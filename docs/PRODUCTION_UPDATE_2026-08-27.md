@@ -55,6 +55,26 @@ PARALLAX initially flagged a confirmation-boundary mismatch in Order Tracking. F
 
 PARALLAX treats unsupported interpretations as something to correct, not something to defend.
 
+## Native WebMCP production regression
+
+The deployed candidate was re-run through a dedicated Chrome 151.0.7922.174 environment with:
+
+```text
+--enable-features=WebMCP
+--enable-blink-features=ModelContextAPI,ModelContextExecutorAPI
+```
+
+The production origin was secure and exposed `document.modelContext`, `registerTool`, `getTools`, and `executeTool`. Native discovery returned the five PARALLAX tools plus the scenario tools. Native `run_parity_audit` returned structured JSON for the same goal in both modes:
+
+```text
+BROKEN  technical PASS / HTTP 200 · semantic FAIL / intent violated
+FIXED   technical PASS / HTTP 200 · intent PASS · parity PASS · agency WARN
+```
+
+The native run also verified application-scoped BROKEN/FIXED tool replacement, reset, re-run, visible UI updates, and an empty application console-error list. The browser does not expose `navigator.modelContextTesting`; this is recorded as the absence of a test-only surface, not as a failure of the native WebMCP APIs.
+
+Full machine-readable evidence is in [`2026-08-27-native-webmcp-production-update.json`](validation/2026-08-27-native-webmcp-production-update.json). The captures are in [`docs/validation/screenshots`](validation/screenshots/).
+
 ## Scope
 
 This update changes validation presentation metadata, the current validation source wiring, and evidence explanation. It does not change the frozen Core, Developer Contract v1, six generic rules, historical validation records, or WebMCP browser adapter semantics.

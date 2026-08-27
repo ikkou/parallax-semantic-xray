@@ -4,6 +4,8 @@ import type { AuditResult } from "../core/result";
 
 export type ExternalValidationMode = "LIVE EXECUTION" | "CAPTURED VALIDATION FIXTURE";
 
+export type ValidationAuthority = "LIVE PLAYGROUND" | "HUMAN APPROVED" | "CAPTURED";
+
 export type ValidationProvenance =
   | "native-webmcp-discovery"
   | "native-webmcp-invocation"
@@ -43,5 +45,10 @@ export type ExternalValidationRecord = {
   toolSnapshot: ExternalToolSnapshot[];
   executionEvidence: ExecutionEvidence[];
   auditResult: AuditResult;
+  authority?: Exclude<ValidationAuthority, "LIVE PLAYGROUND">;
+  evidenceMaturity?: string;
+  validationDate?: string;
+  contractVersion?: string;
+  coreBaselineHash?: string;
   limitations?: string[];
 };

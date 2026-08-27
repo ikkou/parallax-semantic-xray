@@ -68,7 +68,7 @@ Core SHA-256:
 
 The same frozen Core has been applied to WebMCP applications PARALLAX did not author, without adding application-specific branches.
 
-## Declared → Observed → Derived
+## Declared → Observed → Human Approved → Derived
 
 PARALLAX keeps three evidence layers separate:
 
@@ -88,6 +88,11 @@ Technical result
 
         ↓
 
+HUMAN APPROVED
+Evidence interpretation and contract decisions
+
+        ↓
+
 DERIVED
 Intent
 Parity
@@ -96,6 +101,8 @@ Semantic outcome
 ```
 
 A WebMCP declaration such as `readOnlyHint: true` is declared evidence, not proof. Runtime instrumentation, state diffs, or tool-result evidence can contradict it. A declaration/observation mismatch is then a derived finding.
+
+The Human Approved stage is present when a reviewer closes an evidence or meaning question. Captured records remain labeled as captured; PARALLAX does not silently promote them to human-approved evidence.
 
 See [Developer Contract v1](docs/DEVELOPER_CONTRACT_V1.md) for the complete contract and provenance model.
 
@@ -114,18 +121,18 @@ The Core returns `PASS`, `WARN`, or `FAIL` from declared and observed evidence. 
 
 ## Validated Against WebMCP Applications We Didn't Author
 
-The validation records live under [`docs/validation/`](docs/validation/). The dashboard's Application Selector renders the same `AuditResult` for the live Subly Playground and captured external records.
+The validation records live under [`docs/validation/`](docs/validation/). The dashboard's Application Selector renders the same `AuditResult` for the live Subly Playground and external records. Current production presentation metadata is derived from the records and adapters in [`lib/validation/matrix.ts`](lib/validation/matrix.ts).
 
-| Context | Intent | Parity | Agency | Semantic |
-| --- | --- | --- | --- | --- |
-| Subly BROKEN | FAIL | FAIL | WARN | FAIL |
-| Subly FIXED | PASS | PASS | WARN | WARN |
-| Flight Search | PASS | PASS | PASS | PASS |
-| CineFlow | PASS | PASS | WARN | WARN |
-| Order Tracking | PASS | FAIL | PASS | FAIL |
-| Independent SkyHop | PASS | PASS | WARN | WARN |
+| Context | Intent | Parity | Agency | Semantic | Authority |
+| --- | --- | --- | --- | --- | --- |
+| Subly BROKEN | FAIL | FAIL | WARN | FAIL | LIVE PLAYGROUND |
+| Subly FIXED | PASS | PASS | WARN | WARN | LIVE PLAYGROUND |
+| Flight Search | PASS | PASS | PASS | PASS | HUMAN APPROVED |
+| CineFlow | PASS | PASS | WARN | WARN | CAPTURED |
+| Order Tracking | PASS | PASS | PASS | PASS | HUMAN APPROVED |
+| Independent SkyHop | PASS | PASS | WARN | WARN | CAPTURED |
 
-The matrix is derived from the adapters and audit results in [`lib/validation/matrix.ts`](lib/validation/matrix.ts). The machine-readable roll-up is [`2026-08-26-external-validation-matrix.json`](docs/validation/2026-08-26-external-validation-matrix.json).
+The current machine-readable presentation snapshot is [`2026-08-27-production-validation-matrix.json`](docs/validation/2026-08-27-production-validation-matrix.json). The earlier Order Tracking FAIL remains preserved only in the historical [`2026-08-26-order-tracking.json`](docs/validation/2026-08-26-order-tracking.json) record.
 
 ### Flight Search
 
@@ -139,7 +146,7 @@ Agency PASS
 
 PARALLAX can return a clean PASS and does not manufacture findings.
 
-Record: [`2026-08-26-flight-search.json`](docs/validation/2026-08-26-flight-search.json)
+Record: [`2026-08-27-flight-search-human-approved.json`](docs/validation/2026-08-27-flight-search-human-approved.json)
 
 ### CineFlow
 
@@ -155,17 +162,26 @@ Record: [`2026-08-26-cineflow.json`](docs/validation/2026-08-26-cineflow.json)
 
 ### Order Tracking
 
-[Official Chrome Labs example](https://github.com/GoogleChromeLabs/webmcp-tools/tree/main/demos/order-tracking). Native invocation successfully initiated a return. The Human Surface contained a `Confirm Return` boundary, while the Agent Surface exposed return initiation without an equivalent boundary.
+[Official Chrome Labs example](https://github.com/GoogleChromeLabs/webmcp-tools/tree/main/demos/order-tracking). Human-approved evidence establishes the lookup and demo return-result flow, but does not establish a persistent business mutation or a distinct protected confirmation boundary.
 
 ```text
 Intent PASS
-Parity FAIL
+Parity PASS
 Agency PASS
+Semantic PASS
 ```
 
-This is a semantic design observation, not a security claim.
+The initial `missing-confirmation-boundary` result is preserved as historical evidence and classified as an **UNSUPPORTED INITIAL INTERPRETATION**, not as a bug or vulnerability. The approved contract uses `display_return_result` as the observed effect; `return_request_created` is not asserted.
 
-Record: [`2026-08-26-order-tracking.json`](docs/validation/2026-08-26-order-tracking.json)
+Record: [`2026-08-27-order-tracking-human-approved.json`](docs/validation/2026-08-27-order-tracking-human-approved.json)
+
+### Evidence can overturn a finding
+
+PARALLAX initially flagged a confirmation-boundary mismatch in Order Tracking. Fresh agent-assisted integration and Human Semantic Review found that the underlying business effect and boundary semantics were not sufficiently evidenced. After evidence closure, the frozen Core was re-run against the Human-approved contract and the result changed from Parity FAIL to PASS.
+
+PARALLAX treats unsupported interpretations as something to correct, not something to defend.
+
+**AI drafts. Human decides. PARALLAX verifies.**
 
 ### Independent SkyHop
 
@@ -177,7 +193,7 @@ Parity PASS
 Agency WARN
 ```
 
-Record: [`2026-08-26-independent-webmcp-kit-flight.json`](docs/validation/2026-08-26-independent-webmcp-kit-flight.json)
+Record: [`2026-08-26-independent-webmcp-kit-flight.json`](docs/validation/2026-08-26-independent-webmcp-kit-flight.json) · **CAPTURED**
 
 ## How Developers Use PARALLAX
 
@@ -287,7 +303,7 @@ The current public candidate is the existing [PARALLAX production URL](https://p
 - Flight Search, CineFlow, Order Tracking, and Independent SkyHop records; and
 - actual PARALLAX WebMCP tools.
 
-The UI labels stored external evidence as **CAPTURED EXTERNAL VALIDATION**. It does not imply that the external source application is being executed inside PARALLAX.
+The UI distinguishes **HUMAN APPROVED** records from **CAPTURED** records. It does not imply that an external source application is being executed inside PARALLAX.
 
 ## Future work
 
@@ -329,7 +345,7 @@ npm run build
 git diff --check
 ```
 
-See [Developer Contract v1](docs/DEVELOPER_CONTRACT_V1.md), [External Validation Plan](docs/EXTERNAL_VALIDATION_PLAN.md), the [local native WebMCP validation record](docs/validation/2026-08-26-native-webmcp.json), and the [production HTTPS native WebMCP validation record](docs/validation/2026-08-27-native-webmcp-production.json) for the detailed evidence boundary. The three production-candidate review captures are in [docs/validation/screenshots](docs/validation/screenshots/).
+See [Developer Contract v1](docs/DEVELOPER_CONTRACT_V1.md), [External Validation Plan](docs/EXTERNAL_VALIDATION_PLAN.md), the [current production validation matrix](docs/validation/2026-08-27-production-validation-matrix.json), the [local native WebMCP validation record](docs/validation/2026-08-26-native-webmcp.json), and the [production HTTPS native WebMCP validation record](docs/validation/2026-08-27-native-webmcp-production.json) for the detailed evidence boundary. The production review captures are in [docs/validation/screenshots](docs/validation/screenshots/).
 
 ## License
 

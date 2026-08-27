@@ -1,0 +1,80 @@
+{
+  "validationDate": "2026-08-27",
+  "recordType": "PROPOSED HUMAN-APPROVED RE-AUDIT MATRIX",
+  "contractVersion": "Developer Contract v1",
+  "coreBaselineHash": "1388709e738e7aff0e27fabcc19cbbe758af9cf4e412315410aaf8ab7cac6a82",
+  "productionUpdated": false,
+  "entries": [
+    {
+      "id": "subly-broken",
+      "context": "Subly BROKEN",
+      "technical": "pass",
+      "intent": "fail",
+      "parity": "fail",
+      "agency": "warning",
+      "semantic": "fail",
+      "authority": "PLAYGROUND REFERENCE / LIVE NATIVE VALIDATION",
+      "evidenceMaturity": "live playground"
+    },
+    {
+      "id": "subly-fixed",
+      "context": "Subly FIXED",
+      "technical": "pass",
+      "intent": "pass",
+      "parity": "pass",
+      "agency": "warning",
+      "semantic": "warning",
+      "authority": "PLAYGROUND REFERENCE / LIVE NATIVE VALIDATION",
+      "evidenceMaturity": "live playground"
+    },
+    {
+      "id": "flight-search",
+      "context": "Flight Search",
+      "technical": "pass",
+      "intent": "pass",
+      "parity": "pass",
+      "agency": "pass",
+      "semantic": "pass",
+      "authority": "HUMAN APPROVED CONTRACT + EXISTING LIVE NATIVE EVIDENCE",
+      "evidenceMaturity": "human-approved re-audit"
+    },
+    {
+      "id": "cineflow",
+      "context": "CineFlow",
+      "technical": "pass",
+      "intent": "pass",
+      "parity": "pass",
+      "agency": "warning",
+      "semantic": "warning",
+      "authority": "PRIOR ADAPTER INTERPRETATION",
+      "evidenceMaturity": "captured prior validation record"
+    },
+    {
+      "id": "order-tracking",
+      "context": "Order Tracking",
+      "technical": "pass",
+      "intent": "pass",
+      "parity": "pass",
+      "agency": "pass",
+      "semantic": "pass",
+      "authority": "HUMAN APPROVED CONTRACT + EXISTING LIVE NATIVE EVIDENCE",
+      "evidenceMaturity": "human-approved re-audit"
+    },
+    {
+      "id": "independent-flight-booking",
+      "context": "Independent SkyHop",
+      "technical": "pass",
+      "intent": "pass",
+      "parity": "pass",
+      "agency": "warning",
+      "semantic": "warning",
+      "authority": "PRIOR ADAPTER INTERPRETATION",
+      "evidenceMaturity": "captured prior validation record"
+    }
+  ],
+  "notes": [
+    "The initial Order Tracking Parity FAIL remains historical evidence and is superseded as the approved conclusion by the Human-approved re-audit.",
+    "Prior adapter interpretations are intentionally not presented as equivalent in authority to the two Human-approved re-audits.",
+    "This matrix is proposed for review and is not wired into production UI."
+  ]
+}

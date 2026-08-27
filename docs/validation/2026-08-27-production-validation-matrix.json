@@ -1,0 +1,87 @@
+{
+  "validationDate": "2026-08-27",
+  "recordType": "CURRENT PRODUCTION VALIDATION MATRIX",
+  "contractVersion": "Developer Contract v1",
+  "coreBaselineHash": "1388709e738e7aff0e27fabcc19cbbe758af9cf4e412315410aaf8ab7cac6a82",
+  "derivedBy": "lib/validation/matrix.ts → frozen Core runSemanticAudit",
+  "entries": [
+    {
+      "id": "subly-broken",
+      "context": "Subly BROKEN",
+      "technical": "pass",
+      "intent": "fail",
+      "parity": "fail",
+      "agency": "warning",
+      "semantic": "fail",
+      "authority": "LIVE PLAYGROUND",
+      "evidenceMaturity": "live playground",
+      "sourceRecord": "lib/playground/subly"
+    },
+    {
+      "id": "subly-fixed",
+      "context": "Subly FIXED",
+      "technical": "pass",
+      "intent": "pass",
+      "parity": "pass",
+      "agency": "warning",
+      "semantic": "warning",
+      "authority": "LIVE PLAYGROUND",
+      "evidenceMaturity": "live playground",
+      "sourceRecord": "lib/playground/subly"
+    },
+    {
+      "id": "flight-search",
+      "context": "Flight Search",
+      "technical": "pass",
+      "intent": "pass",
+      "parity": "pass",
+      "agency": "pass",
+      "semantic": "pass",
+      "authority": "HUMAN APPROVED",
+      "evidenceMaturity": "human-approved evidence",
+      "sourceRecord": "docs/validation/2026-08-27-flight-search-human-approved.json"
+    },
+    {
+      "id": "cineflow",
+      "context": "CineFlow",
+      "technical": "pass",
+      "intent": "pass",
+      "parity": "pass",
+      "agency": "warning",
+      "semantic": "warning",
+      "authority": "CAPTURED",
+      "evidenceMaturity": "captured validation record",
+      "sourceRecord": "docs/validation/2026-08-26-cineflow.json"
+    },
+    {
+      "id": "order-tracking",
+      "context": "Order Tracking",
+      "technical": "pass",
+      "intent": "pass",
+      "parity": "pass",
+      "agency": "pass",
+      "semantic": "pass",
+      "authority": "HUMAN APPROVED",
+      "evidenceMaturity": "human-approved evidence",
+      "sourceRecord": "docs/validation/2026-08-27-order-tracking-human-approved.json",
+      "historicalRecord": "docs/validation/2026-08-26-order-tracking.json"
+    },
+    {
+      "id": "independent-flight-booking",
+      "context": "Independent SkyHop",
+      "technical": "pass",
+      "intent": "pass",
+      "parity": "pass",
+      "agency": "warning",
+      "semantic": "warning",
+      "authority": "CAPTURED",
+      "evidenceMaturity": "captured validation record",
+      "sourceRecord": "docs/validation/2026-08-26-independent-webmcp-kit-flight.json"
+    }
+  ],
+  "notes": [
+    "The dashboard recomputes current statuses from the referenced contracts and execution evidence; this file is the production presentation snapshot.",
+    "The historical Order Tracking Parity FAIL is not a current result and is retained only for audit-history traceability.",
+    "Authority and evidence-maturity labels are presentation metadata and do not affect Core rule evaluation."
+  ]
+}

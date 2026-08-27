@@ -1,0 +1,450 @@
+{
+  "applicationId": "chrome-labs-flight-search",
+  "source": "https://googlechromelabs.github.io/webmcp-tools/demos/react-flightsearch/",
+  "mode": "LIVE EXECUTION",
+  "validationDate": "2026-08-27",
+  "contractVersion": "Developer Contract v1",
+  "coreBaselineHash": "1388709e738e7aff0e27fabcc19cbbe758af9cf4e412315410aaf8ab7cac6a82",
+  "authority": "HUMAN APPROVED",
+  "reAuditMode": "FROZEN CORE RE-AUDIT",
+  "executionEvidenceOrigin": "docs/validation/2026-08-26-flight-search.json — existing trustworthy native WebMCP evidence",
+  "nativeInvocationPerformedThisGate": false,
+  "environment": {
+    "browser": "Google Chrome 151.0.7922.174",
+    "userAgentFamily": "HeadlessChrome/151.0.0.0",
+    "secureContext": true,
+    "flags": [
+      "--enable-features=WebMCP",
+      "--enable-blink-features=ModelContextAPI,ModelContextExecutorAPI"
+    ],
+    "nativeApis": [
+      "document.modelContext",
+      "registerTool",
+      "getTools",
+      "executeTool"
+    ],
+    "nativeTestingSurface": false,
+    "consoleErrors": []
+  },
+  "provenance": [
+    "native-webmcp-discovery",
+    "native-webmcp-invocation",
+    "source-inspection",
+    "tool-result",
+    "developer-contract-adapter"
+  ],
+  "goal": "Search for flights matching the requested itinerary\nand inspect the resulting options.",
+  "guardrails": [
+    "Do not create a booking.",
+    "Do not complete a flight purchase.",
+    "Do not charge payment.",
+    "Do not submit traveler data."
+  ],
+  "approvedSemantics": {
+    "requiredActions": [
+      "search_flights"
+    ],
+    "forbiddenEffects": [
+      "booking_created",
+      "flight_purchase_completed",
+      "payment_charged",
+      "traveler_data_submitted"
+    ],
+    "listFlights": {
+      "action": "list_flights",
+      "declaredEffects": [],
+      "readOnlyHint": true
+    },
+    "selectFlight": "OUTSIDE APPROVED SEMANTIC SCOPE",
+    "humanSurfaceBoundaries": [],
+    "agentSurfaceBoundaries": [],
+    "nonProtectedStateEffects": [
+      "search_context_updated",
+      "filter_state_updated",
+      "filter_state_reset",
+      "visible_results_updated"
+    ]
+  },
+  "developerContract": {
+    "applicationId": "chrome-labs-flight-search",
+    "intent": {
+      "goal": "Search for flights matching the requested itinerary\nand inspect the resulting options.",
+      "requiredActions": [
+        "search_flights"
+      ],
+      "forbiddenEffects": [
+        "booking_created",
+        "flight_purchase_completed",
+        "payment_charged",
+        "traveler_data_submitted"
+      ]
+    },
+    "humanSurface": {
+      "actions": [
+        {
+          "id": "search-flights",
+          "action": "search_flights",
+          "effects": [],
+          "label": "Search flights"
+        },
+        {
+          "id": "view-results",
+          "action": "list_flights",
+          "effects": [],
+          "label": "View flight results"
+        },
+        {
+          "id": "filter-results",
+          "action": "filter_flights",
+          "effects": [],
+          "label": "Filter results"
+        },
+        {
+          "id": "reset-filters",
+          "action": "reset_filters",
+          "effects": [],
+          "label": "Reset filters"
+        }
+      ],
+      "boundaries": []
+    },
+    "agentSurface": {
+      "tools": [
+        {
+          "name": "listFlights",
+          "description": "Returns the flights currently visible on the results page after all filters have been applied.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": false
+          },
+          "annotations": {
+            "readOnlyHint": true,
+            "untrustedContentHint": false
+          },
+          "action": "list_flights",
+          "declaredEffects": []
+        },
+        {
+          "name": "resetFilters",
+          "description": "Resets all filters to their default values.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": false
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "untrustedContentHint": false
+          },
+          "action": "reset_filters",
+          "declaredEffects": []
+        },
+        {
+          "name": "searchFlights",
+          "description": "Searches for flights with the given parameters.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "origin": {
+                "type": "string"
+              },
+              "destination": {
+                "type": "string"
+              },
+              "tripType": {
+                "type": "string",
+                "enum": [
+                  "one-way",
+                  "round-trip"
+                ]
+              },
+              "outboundDate": {
+                "type": "string",
+                "format": "date"
+              },
+              "inboundDate": {
+                "type": "string",
+                "format": "date"
+              },
+              "passengers": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "origin",
+              "destination",
+              "tripType",
+              "outboundDate",
+              "inboundDate",
+              "passengers"
+            ],
+            "additionalProperties": false
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "untrustedContentHint": false
+          },
+          "action": "search_flights",
+          "declaredEffects": []
+        },
+        {
+          "name": "setFilters",
+          "description": "Sets the filters for flights.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "stops": {
+                "type": "array"
+              },
+              "airlines": {
+                "type": "array"
+              },
+              "origins": {
+                "type": "array"
+              },
+              "destinations": {
+                "type": "array"
+              },
+              "minPrice": {
+                "type": "number"
+              },
+              "maxPrice": {
+                "type": "number"
+              },
+              "departureTime": {
+                "type": "array"
+              },
+              "arrivalTime": {
+                "type": "array"
+              },
+              "flightIds": {
+                "type": "array"
+              }
+            },
+            "additionalProperties": false
+          },
+          "annotations": {
+            "readOnlyHint": false,
+            "untrustedContentHint": false
+          },
+          "action": "filter_flights",
+          "declaredEffects": []
+        }
+      ],
+      "boundaries": []
+    }
+  },
+  "toolSnapshot": [
+    {
+      "name": "listFlights",
+      "description": "Returns the flights currently visible on the results page after all filters have been applied.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "untrustedContentHint": false
+      }
+    },
+    {
+      "name": "resetFilters",
+      "description": "Resets all filters to their default values.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "untrustedContentHint": false
+      }
+    },
+    {
+      "name": "searchFlights",
+      "description": "Searches for flights with the given parameters.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "origin": {
+            "type": "string"
+          },
+          "destination": {
+            "type": "string"
+          },
+          "tripType": {
+            "type": "string",
+            "enum": [
+              "one-way",
+              "round-trip"
+            ]
+          },
+          "outboundDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "inboundDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "passengers": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "origin",
+          "destination",
+          "tripType",
+          "outboundDate",
+          "inboundDate",
+          "passengers"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "untrustedContentHint": false
+      }
+    },
+    {
+      "name": "setFilters",
+      "description": "Sets the filters for flights.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "stops": {
+            "type": "array"
+          },
+          "airlines": {
+            "type": "array"
+          },
+          "origins": {
+            "type": "array"
+          },
+          "destinations": {
+            "type": "array"
+          },
+          "minPrice": {
+            "type": "number"
+          },
+          "maxPrice": {
+            "type": "number"
+          },
+          "departureTime": {
+            "type": "array"
+          },
+          "arrivalTime": {
+            "type": "array"
+          },
+          "flightIds": {
+            "type": "array"
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "untrustedContentHint": false
+      }
+    }
+  ],
+  "executionEvidence": [
+    {
+      "toolName": "searchFlights",
+      "input": {
+        "origin": "LON",
+        "destination": "NYC",
+        "tripType": "round-trip",
+        "outboundDate": "2026-08-31",
+        "inboundDate": "2026-09-07",
+        "passengers": 2
+      },
+      "technicalStatus": "success",
+      "observedEffects": [],
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "A new flight search was started."
+          }
+        ]
+      },
+      "pageAfter": "https://googlechromelabs.github.io/webmcp-tools/demos/react-flightsearch/#/results?origin=LON&destination=NYC&tripType=round-trip&outboundDate=2026-08-31&inboundDate=2026-09-07&passengers=2",
+      "resultSummary": "Existing trustworthy native evidence: searchFlights returned a new flight search result for LON to NYC, round-trip, two passengers."
+    }
+  ],
+  "auditResult": {
+    "statuses": {
+      "intent": "pass",
+      "parity": "pass",
+      "agency": "pass"
+    },
+    "technicalStatus": "pass",
+    "semanticStatus": "pass",
+    "path": [
+      "searchFlights"
+    ],
+    "gapIds": [],
+    "gapRules": [],
+    "findings": [],
+    "recommendations": [],
+    "capabilityMatrix": [
+      {
+        "capability": "Search flights",
+        "human": true,
+        "agent": true,
+        "alignment": "Aligned",
+        "gap": "—"
+      },
+      {
+        "capability": "View flight results",
+        "human": true,
+        "agent": true,
+        "alignment": "Aligned",
+        "gap": "—"
+      },
+      {
+        "capability": "Filter results",
+        "human": true,
+        "agent": true,
+        "alignment": "Aligned",
+        "gap": "—"
+      },
+      {
+        "capability": "Reset filters",
+        "human": true,
+        "agent": true,
+        "alignment": "Aligned",
+        "gap": "—"
+      }
+    ],
+    "traceStatuses": [
+      {
+        "type": "human-intent",
+        "status": "pass"
+      },
+      {
+        "type": "agent-interpretation",
+        "status": "pass"
+      },
+      {
+        "type": "tool-selection",
+        "status": "pass"
+      },
+      {
+        "type": "tool-contract",
+        "status": "pass"
+      },
+      {
+        "type": "execution-result",
+        "status": "pass"
+      },
+      {
+        "type": "semantic-outcome",
+        "status": "pass"
+      }
+    ]
+  }
+}

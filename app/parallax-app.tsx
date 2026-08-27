@@ -216,11 +216,21 @@ function CapabilityCell({ value }: { value: boolean }) {
 }
 
 function ExternalSurfaceSummary({ context }: { context: ValidationContext }) {
+  const isHumanApproved = context.authority === "HUMAN APPROVED";
+  const observedEffects = context.executionEvidence.flatMap((entry) =>
+    entry.observedEffects.map((observed) => ({ ...observed, toolName: entry.toolName })),
+  );
+
   return (
     <div className="external-surface-summary">
-      <div className="captured-marker"><CircleDot size={11} /> CAPTURED EXTERNAL VALIDATION</div>
+      <div className={`captured-marker ${isHumanApproved ? "is-approved" : "is-captured"}`}><CircleDot size={11} /> {context.authority} · EXTERNAL VALIDATION</div>
       <div className="external-summary-title">{context.label}</div>
       <div className="external-summary-meta"><span>source</span><a href={context.source} target="_blank" rel="noreferrer">{context.source}</a></div>
+      <div className="evidence-chain" aria-label="Evidence trust model">
+        <span>DECLARED</span><ArrowRight size={10} /> <span>OBSERVED</span>
+        {isHumanApproved && <><ArrowRight size={10} /> <strong>HUMAN APPROVED</strong></>}
+        <ArrowRight size={10} /> <span>DERIVED</span>
+      </div>
       <div className="external-goal-block">
         <span className="muted-label">GOAL</span>
         <p>{context.goal}</p>
@@ -235,6 +245,14 @@ function ExternalSurfaceSummary({ context }: { context: ValidationContext }) {
           </div>
         ))}
       </div>
+      {observedEffects.length > 0 && (
+        <div className="external-observed-list">
+          <span className="muted-label">OBSERVED EFFECTS</span>
+          {observedEffects.map((observed) => (
+            <div key={`${observed.toolName}-${observed.effect}-${observed.source}`}><ArrowRight size={10} /> <code>{observed.effect}</code><span>{observed.toolName} · {observed.source}</span></div>
+          ))}
+        </div>
+      )}
       {context.contract.humanSurface.boundaries.length > 0 && (
         <div className="external-boundary-list">
           <span className="muted-label">BOUNDARIES</span>
@@ -243,7 +261,24 @@ function ExternalSurfaceSummary({ context }: { context: ValidationContext }) {
           ))}
         </div>
       )}
-      <div className="external-summary-note">The source application is not cloned here. PARALLAX is showing the declared human contract and captured evidence.</div>
+      {context.auditHistory && (
+        <div className="audit-history-block">
+          <div className="external-flow-heading"><Activity size={12} /> AUDIT HISTORY</div>
+          <div className="audit-history-list">
+            {context.auditHistory.map((entry) => (
+              <div className={`audit-history-row audit-history-${entry.tone}`} key={entry.label}>
+                <span>{entry.label}</span>
+                <strong>{entry.detail}</strong>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="external-summary-note">
+        {isHumanApproved
+          ? "Human-approved contract and observed evidence are re-run through the frozen Core."
+          : "Captured fixture · the source application is not cloned here; invoke it in its own environment to collect new evidence."}
+      </div>
     </div>
   );
 }
@@ -532,11 +567,15 @@ function App() {
     : audit.statuses.parity === "fail"
       ? "A declared Human Surface boundary has no equivalent Agent Surface boundary"
       : "Technical execution failed before semantic completion";
-  const semanticPassTitle = isExternalContext ? "CAPTURED PATH VERIFIED" : "SEMANTIC PATH VERIFIED";
+  const semanticPassTitle = isExternalContext
+    ? activeContext.authority === "HUMAN APPROVED" ? "HUMAN-APPROVED PATH VERIFIED" : "CAPTURED PATH VERIFIED"
+    : "SEMANTIC PATH VERIFIED";
   const semanticPassDetail = isExternalContext
     ? audit.semanticStatus === "warning"
       ? "No direct intent violation was observed; a non-fatal contract asymmetry remains."
-      : "Declared and observed evidence agree for this captured workflow."
+      : activeContext.authority === "HUMAN APPROVED"
+        ? "Human-approved contract and observed evidence agree for this workflow."
+        : "Declared and observed evidence agree for this captured workflow."
     : `Recommendation returned without changing the subscription.${agencyWarning ? " Mutation tools remain exposed for this read-only goal." : ""}`;
 
   if (!hydrated) {
@@ -563,7 +602,7 @@ function App() {
         <div className="topbar-status">
           <div className={`webmcp-indicator ${isExternalContext ? "is-captured" : support.supported ? "is-live" : "is-local"}`}>
             <CircleDot size={13} />
-            <span>{isExternalContext ? "captured validation" : support.supported ? "WebMCP live" : "local simulator"}</span>
+            <span>{isExternalContext ? activeContext.authority.toLowerCase() : support.supported ? "WebMCP live" : "local simulator"}</span>
           </div>
           <div className="topbar-divider" />
           <div className="audit-id"><span className="muted-label">{isExternalContext ? "APPLICATION" : "AUDIT ID"}</span> {isExternalContext ? activeContext.applicationId : "AUD-2026-0826-0017"}</div>
@@ -578,7 +617,7 @@ function App() {
         </div>
         <div className="mode-controls">
           {isExternalContext ? (
-            <span className="captured-chip"><CircleDot size={11} /> CAPTURED · READ-ONLY VIEW</span>
+            <span className={`captured-chip ${activeContext.authority === "HUMAN APPROVED" ? "is-approved" : "is-captured"}`}><CircleDot size={11} /> {activeContext.authority} · READ-ONLY VIEW</span>
           ) : (
             <>
               <div className="mode-toggle" role="group" aria-label="Scenario mode">
@@ -612,14 +651,14 @@ function App() {
               <option key={context.id} value={context.id}>{context.label}</option>
             ))}
           </optgroup>
-          <optgroup label="CAPTURED EXTERNAL VALIDATION">
+          <optgroup label="EXTERNAL VALIDATION">
             {VALIDATION_CONTEXTS.filter((context) => context.kind === "captured-external").map((context) => (
-              <option key={context.id} value={context.id}>{context.label}</option>
+              <option key={context.id} value={context.id}>{context.label} · {context.authority}</option>
             ))}
           </optgroup>
         </select>
-        <span className={`context-kind ${isExternalContext ? "is-captured" : "is-live"}`}>
-          <CircleDot size={10} /> {isExternalContext ? "CAPTURED EXTERNAL VALIDATION" : "LIVE PLAYGROUND"}
+        <span className={`context-kind ${isExternalContext ? activeContext.authority === "HUMAN APPROVED" ? "is-approved" : "is-captured" : "is-live"}`}>
+          <CircleDot size={10} /> {isExternalContext ? `${activeContext.authority} · ${activeContext.evidenceMaturity}` : "LIVE PLAYGROUND"}
         </span>
       </section>
 
@@ -656,7 +695,7 @@ function App() {
           <PanelHeading
             icon={<Eye size={15} />}
             title="HUMAN SURFACE"
-            suffix={<span className="surface-count">{isExternalContext ? "CAPTURED EXTERNAL VALIDATION" : "LIVE PLAYGROUND · SUBLY / PLANS"}</span>}
+            suffix={<span className="surface-count">{isExternalContext ? `${activeContext.authority} · EXTERNAL` : "LIVE PLAYGROUND · SUBLY / PLANS"}</span>}
             action={<span className={`surface-live ${isExternalContext ? "is-captured-label" : ""}`}><CircleDot size={11} /> {isExternalContext ? "captured" : "observed"}</span>}
           />
           {isExternalContext ? <ExternalSurfaceSummary context={activeContext} /> : <div className="browser-frame">
@@ -727,7 +766,7 @@ function App() {
           <PanelHeading
             icon={<Network size={15} />}
             title="SEMANTIC X-RAY"
-            suffix={<span className={`scenario-label ${isExternalContext ? "captured" : mode}`}>{isExternalContext ? "CAPTURED VALIDATION" : mode === "broken" ? "BROKEN SCENARIO" : "FIXED SCENARIO"}</span>}
+            suffix={<span className={`scenario-label ${isExternalContext ? "captured" : mode}`}>{isExternalContext ? `${activeContext.authority} · VALIDATION` : mode === "broken" ? "BROKEN SCENARIO" : "FIXED SCENARIO"}</span>}
             action={<span className="trace-signal"><span className="signal-dot" /> tracing</span>}
           />
           <div className="trace-goal-card">
@@ -761,7 +800,7 @@ function App() {
           <PanelHeading
             icon={<Code2 size={15} />}
             title="AGENT SURFACE"
-            suffix={<span className="surface-count">{isExternalContext ? "CAPTURED EXTERNAL TOOL SURFACE" : "LIVE PLAYGROUND · DOCUMENT.MODELCONTEXT"}</span>}
+            suffix={<span className="surface-count">{isExternalContext ? `${activeContext.authority} · EXTERNAL TOOL SURFACE` : "LIVE PLAYGROUND · DOCUMENT.MODELCONTEXT"}</span>}
             action={<span className={`surface-live ${isExternalContext ? "is-captured-label" : support.supported ? "" : "is-local-label"}`}><CircleDot size={11} /> {isExternalContext ? "captured" : support.supported ? "live" : "local"}</span>}
           />
           <div className="agent-toolbar"><span><Layers3 size={13} /> AVAILABLE TOOLS</span><span className="tool-count">{displayTools.length} exposed</span></div>
@@ -790,7 +829,7 @@ function App() {
             <div className="inspector-kv"><span>semanticAction</span><strong>{activeTool?.action ?? "—"}</strong></div>
             <div className="inspector-effects"><span>declared effects</span><div>{activeTool?.declaredEffects.map((effect) => <code key={effect}>{effect}</code>)}</div></div>
             <div className="inspector-effects"><span>observed effects</span><div>{audit.execution.filter((entry) => entry.toolName === activeTool?.name).flatMap((entry) => entry.observedEffects).map((observed) => <code key={`${observed.effect}-${observed.source}`}>{observed.effect} · {observed.source}</code>)}</div></div>
-            {isExternalContext ? <div className="captured-inspector-note"><CircleDot size={11} /> Captured fixture · invoke in the source environment to collect new evidence.</div> : <button className="inspector-cta" onClick={() => void executeSingleTool(activeTool?.name ?? "")} disabled={isRunning || !activeTool}><Play size={12} fill="currentColor" /> Execute {activeTool?.name ?? "tool"}</button>}
+            {isExternalContext ? <div className="captured-inspector-note"><CircleDot size={11} /> {activeContext.authority} record · invoke in the source environment to collect new evidence.</div> : <button className="inspector-cta" onClick={() => void executeSingleTool(activeTool?.name ?? "")} disabled={isRunning || !activeTool}><Play size={12} fill="currentColor" /> Execute {activeTool?.name ?? "tool"}</button>}
           </div>
           <div className="subpanel execution-log">
             <div className="subpanel-heading"><span><Activity size={13} /> AGENT EXECUTION LOG</span><span className={`live-label ${isExternalContext ? "is-captured-label" : ""}`}><CircleDot size={10} /> {isExternalContext ? "captured" : "live"}</span></div>
@@ -858,7 +897,7 @@ function App() {
 
       <footer className="app-footer">
         <span>PARALLAX / Semantic supply chain inspection</span>
-        <span><span className="muted-label">MODE</span> {isExternalContext ? "CAPTURED VALIDATION" : mode.toUpperCase()} <span className="footer-divider" /><span className="muted-label">WEBMCP</span> {support.label} <span className="footer-divider" /><span className="muted-label">SURFACE</span> {displayedToolCount} tools</span>
+        <span><span className="muted-label">MODE</span> {isExternalContext ? `${activeContext.authority} VALIDATION` : mode.toUpperCase()} <span className="footer-divider" /><span className="muted-label">WEBMCP</span> {support.label} <span className="footer-divider" /><span className="muted-label">SURFACE</span> {displayedToolCount} tools</span>
         <button className="footer-link"><Copy size={12} /> Copy audit JSON</button>
       </footer>
     </main>

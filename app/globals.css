@@ -355,6 +355,16 @@ button:focus-visible {
   color: var(--violet-bright);
 }
 
+.context-kind.is-approved,
+.captured-chip.is-approved,
+.captured-marker.is-approved {
+  color: var(--green);
+}
+
+.captured-marker.is-captured {
+  color: var(--violet-bright);
+}
+
 .captured-chip {
   padding: 7px 9px;
   border: 1px solid rgba(173, 157, 255, 0.36);
@@ -689,6 +699,27 @@ button:focus-visible {
   white-space: nowrap;
 }
 
+.evidence-chain {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 12px;
+  color: var(--muted-deep);
+  font-family: var(--mono);
+  font-size: 7px;
+  letter-spacing: 0.06em;
+}
+
+.evidence-chain svg {
+  color: var(--violet);
+}
+
+.evidence-chain strong {
+  color: var(--green);
+  font-weight: 700;
+}
+
 .external-goal-block {
   margin-top: 16px;
   padding: 9px 10px;
@@ -764,6 +795,94 @@ button:focus-visible {
 .external-boundary-list > div code {
   color: var(--amber);
   border-color: rgba(242, 183, 94, 0.28);
+}
+
+.external-observed-list {
+  display: grid;
+  gap: 5px;
+  margin-top: 12px;
+  color: var(--text-soft);
+  font-family: var(--mono);
+  font-size: 8px;
+}
+
+.external-observed-list > .muted-label {
+  color: var(--muted-deep);
+  font-size: 8px;
+  letter-spacing: 0.07em;
+}
+
+.external-observed-list > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.external-observed-list svg {
+  color: var(--green);
+}
+
+.external-observed-list code {
+  padding: 2px 4px;
+  border: 1px solid rgba(94, 218, 160, 0.28);
+  color: var(--green);
+  font-size: 7px;
+}
+
+.external-observed-list > div > span {
+  color: var(--muted-deep);
+  font-size: 7px;
+}
+
+.audit-history-block {
+  margin-top: 11px;
+  padding-top: 1px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.audit-history-list {
+  display: grid;
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.audit-history-row {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 7px;
+  padding: 4px 5px;
+  border-left: 2px solid var(--violet);
+  background: rgba(140, 118, 255, 0.045);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 7px;
+  line-height: 1.4;
+}
+
+.audit-history-row > span {
+  color: var(--muted-deep);
+  letter-spacing: 0.05em;
+}
+
+.audit-history-row strong {
+  color: var(--text-soft);
+  font-weight: 500;
+}
+
+.audit-history-historical {
+  border-left-color: var(--amber);
+}
+
+.audit-history-historical strong {
+  color: var(--amber);
+}
+
+.audit-history-approved {
+  border-left-color: var(--green);
+}
+
+.audit-history-approved strong {
+  color: var(--green);
 }
 
 .external-summary-note {

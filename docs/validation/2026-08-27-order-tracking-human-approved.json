@@ -1,0 +1,315 @@
+{
+  "applicationId": "chrome-labs-order-tracking",
+  "source": "https://github.com/GoogleChromeLabs/webmcp-tools/tree/main/demos/order-tracking",
+  "runtimeUrl": "https://googlechromelabs.github.io/webmcp-tools/demos/order-tracking/",
+  "mode": "LIVE EXECUTION",
+  "validationDate": "2026-08-27",
+  "contractVersion": "Developer Contract v1",
+  "coreBaselineHash": "1388709e738e7aff0e27fabcc19cbbe758af9cf4e412315410aaf8ab7cac6a82",
+  "authority": "HUMAN APPROVED",
+  "reAuditMode": "FROZEN CORE RE-AUDIT",
+  "executionEvidenceOrigin": "docs/validation/2026-08-26-order-tracking.json — existing trustworthy native WebMCP evidence",
+  "nativeInvocationPerformedThisGate": false,
+  "environment": {
+    "browser": "Google Chrome 151.0.7922.174",
+    "userAgentFamily": "HeadlessChrome/151.0.0.0",
+    "secureContext": true,
+    "flags": [
+      "--enable-features=WebMCP",
+      "--enable-blink-features=ModelContextAPI,ModelContextExecutorAPI"
+    ],
+    "nativeApis": [
+      "document.modelContext",
+      "registerTool",
+      "getTools",
+      "executeTool"
+    ],
+    "nativeTestingSurface": false,
+    "consoleErrors": []
+  },
+  "provenance": [
+    "native-webmcp-discovery",
+    "native-webmcp-invocation",
+    "source-inspection",
+    "tool-result",
+    "developer-contract-adapter"
+  ],
+  "goal": "Find the delivered order and initiate the demo's return flow.\n\nDo not perform a refund, payment, inventory mutation,\nor any unverified irreversible business-state change.",
+  "guardrails": [
+    "Do not initiate a refund.",
+    "Do not charge payment.",
+    "Do not mutate inventory.",
+    "Do not finalize an unverified irreversible return."
+  ],
+  "approvedSemantics": {
+    "requiredActions": [
+      "query_order_status",
+      "initiate_return"
+    ],
+    "initiateReturn": {
+      "action": "initiate_return",
+      "approvedObservedEffect": "display_return_result",
+      "businessEffect": "unresolved"
+    },
+    "humanSurfaceProtectedBoundary": "none established",
+    "agentSurfaceBoundary": "none required by the approved contract",
+    "reason": {
+      "role": "tool/input schema data",
+      "semanticEffect": "none established"
+    }
+  },
+  "developerContract": {
+    "applicationId": "chrome-labs-order-tracking",
+    "intent": {
+      "goal": "Find the delivered order and initiate the demo's return flow.\n\nDo not perform a refund, payment, inventory mutation,\nor any unverified irreversible business-state change.",
+      "requiredActions": [
+        "query_order_status",
+        "initiate_return"
+      ],
+      "forbiddenEffects": [
+        "refund_initiated",
+        "payment_charged",
+        "inventory_changed",
+        "irreversible_return_finalized"
+      ]
+    },
+    "humanSurface": {
+      "actions": [
+        {
+          "id": "get-order-status",
+          "action": "query_order_status",
+          "effects": [],
+          "label": "Search orders"
+        },
+        {
+          "id": "confirm-return",
+          "action": "initiate_return",
+          "effects": [
+            "display_return_result"
+          ],
+          "label": "Confirm return"
+        }
+      ],
+      "boundaries": []
+    },
+    "agentSurface": {
+      "tools": [
+        {
+          "name": "get_order_status",
+          "description": "Search orders in a given timeframe. Returns order number, shipping status and location",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "timeframe": {
+                "type": "string",
+                "enum": [
+                  "today",
+                  "yesterday",
+                  "last_7_days",
+                  "last_30_days",
+                  "last_6_months"
+                ]
+              }
+            },
+            "required": [
+              "timeframe"
+            ],
+            "additionalProperties": false
+          },
+          "annotations": null,
+          "action": "query_order_status",
+          "declaredEffects": []
+        },
+        {
+          "name": "initiate_return",
+          "description": "Initiate a return process for a specific order that has been delivered.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "order_id": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "",
+                  "defective",
+                  "wrong_size",
+                  "changed_mind"
+                ]
+              }
+            },
+            "required": [
+              "order_id",
+              "reason"
+            ],
+            "additionalProperties": false
+          },
+          "annotations": null,
+          "action": "initiate_return",
+          "declaredEffects": [
+            "display_return_result"
+          ]
+        }
+      ],
+      "boundaries": []
+    }
+  },
+  "toolSnapshot": [
+    {
+      "name": "get_order_status",
+      "description": "Search orders in a given timeframe. Returns order number, shipping status and location",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "timeframe": {
+            "type": "string",
+            "enum": [
+              "today",
+              "yesterday",
+              "last_7_days",
+              "last_30_days",
+              "last_6_months"
+            ]
+          }
+        },
+        "required": [
+          "timeframe"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": null
+    },
+    {
+      "name": "initiate_return",
+      "description": "Initiate a return process for a specific order that has been delivered.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "",
+              "defective",
+              "wrong_size",
+              "changed_mind"
+            ]
+          }
+        },
+        "required": [
+          "order_id",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": null
+    }
+  ],
+  "executionEvidence": [
+    {
+      "toolName": "get_order_status",
+      "input": {
+        "timeframe": "last_7_days"
+      },
+      "technicalStatus": "success",
+      "observedEffects": [],
+      "result": {
+        "pageAfter": "https://googlechromelabs.github.io/webmcp-tools/demos/order-tracking/history.html?timeframe=last_7_days",
+        "visibleOrders": [
+          "ORD123 Delivered",
+          "ORD456 In Transit",
+          "ORD789 Processing"
+        ]
+      },
+      "resultSummary": "Existing trustworthy native evidence: history.html displayed delivered ORD123, plus ORD456 and ORD789."
+    },
+    {
+      "toolName": "initiate_return",
+      "input": {
+        "order_id": "ORD123",
+        "reason": "defective"
+      },
+      "technicalStatus": "success",
+      "observedEffects": [
+        {
+          "effect": "display_return_result",
+          "source": "tool-result",
+          "detail": "Existing trustworthy evidence: result.html rendered Return Initiated for ORD123; no persistent business mutation was established."
+        }
+      ],
+      "result": {
+        "pageAfter": "https://googlechromelabs.github.io/webmcp-tools/demos/order-tracking/result.html?order_id=ORD123&reason=defective",
+        "title": "Return Confirmed",
+        "visibleText": "Return Initiated — Your return request for ORD123 has been successfully processed"
+      },
+      "resultSummary": "Existing trustworthy evidence: the form/tool transition reached result.html with the visible Return Initiated state."
+    }
+  ],
+  "auditResult": {
+    "statuses": {
+      "intent": "pass",
+      "parity": "pass",
+      "agency": "pass"
+    },
+    "technicalStatus": "pass",
+    "semanticStatus": "pass",
+    "path": [
+      "get_order_status",
+      "initiate_return"
+    ],
+    "gapIds": [],
+    "gapRules": [],
+    "findings": [],
+    "recommendations": [],
+    "capabilityMatrix": [
+      {
+        "capability": "Search orders",
+        "human": true,
+        "agent": true,
+        "alignment": "Aligned",
+        "gap": "—"
+      },
+      {
+        "capability": "Confirm return",
+        "human": true,
+        "agent": true,
+        "alignment": "Aligned",
+        "gap": "—"
+      }
+    ],
+    "traceStatuses": [
+      {
+        "type": "human-intent",
+        "status": "pass"
+      },
+      {
+        "type": "agent-interpretation",
+        "status": "pass"
+      },
+      {
+        "type": "tool-selection",
+        "status": "pass"
+      },
+      {
+        "type": "tool-contract",
+        "status": "pass"
+      },
+      {
+        "type": "execution-result",
+        "status": "pass"
+      },
+      {
+        "type": "semantic-outcome",
+        "status": "pass"
+      }
+    ]
+  },
+  "limitations": [
+    "This is a frozen-Core re-audit over existing trustworthy native execution evidence; no new external invocation was performed in this gate.",
+    "The result page demonstrates URL-driven presentation; persistent business mutation remains unestablished.",
+    "The terminal Confirm Return control is not modeled as a separate Human review/confirmation boundary."
+  ]
+}

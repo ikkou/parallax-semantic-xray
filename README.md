@@ -280,6 +280,16 @@ explain_gap
 
 The browser adapter keeps native registration, discovery, execution, support detection, and application-scoped local mirrors outside the pure Core. See [`lib/integration/webmcp/`](lib/integration/webmcp/).
 
+## WebMCP Extension interoperability
+
+The production URL was tested through the [WebMCP Extension](https://chromewebstore.google.com/detail/webmcp-extension/jigokfbbpcdckjmhbgapmikncfihboec) in Chrome 151. The extension discovered all 9 page tools, exposed their descriptions and inputs, invoked `run_parity_audit`, received its structured BROKEN result, and the page appended the live `WebMCP invocation` entry to the Agent Execution Log.
+
+The same run rejected empty and whitespace-only goals without replacing the existing audit state. The extension presents rejected tool calls with a generic execution-error message; the exact `INVALID_ARGUMENT` contract is verified by the local contract tests and the native WebMCP regression.
+
+> The WebMCP Extension validates the mechanics. PARALLAX validates the semantics.
+
+Record: [`2026-08-27-webmcp-extension-interoperability.md`](docs/validation/2026-08-27-webmcp-extension-interoperability.md)
+
 ## A Missing Test Layer for the Agentic Web
 
 Traditional web development already has:
@@ -339,13 +349,14 @@ Validation:
 
 ```bash
 npm run test:core
+npm run test:contracts
 npm run typecheck
 npm run lint
 npm run build
 git diff --check
 ```
 
-See [Developer Contract v1](docs/DEVELOPER_CONTRACT_V1.md), [External Validation Plan](docs/EXTERNAL_VALIDATION_PLAN.md), the [current production validation matrix](docs/validation/2026-08-27-production-validation-matrix.json), the [local native WebMCP validation record](docs/validation/2026-08-26-native-webmcp.json), the [pre-update production record](docs/validation/2026-08-27-native-webmcp-production.json), and the [post-update production regression record](docs/validation/2026-08-27-native-webmcp-production-update.json) for the detailed evidence boundary. The production review captures are in [docs/validation/screenshots](docs/validation/screenshots/).
+See [Developer Contract v1](docs/DEVELOPER_CONTRACT_V1.md), [External Validation Plan](docs/EXTERNAL_VALIDATION_PLAN.md), the [current production validation matrix](docs/validation/2026-08-27-production-validation-matrix.json), the [local native WebMCP validation record](docs/validation/2026-08-26-native-webmcp.json), the [pre-update production record](docs/validation/2026-08-27-native-webmcp-production.json), the [post-update production regression record](docs/validation/2026-08-27-native-webmcp-production-update.json), the [post-fix native goal validation](docs/validation/2026-08-27-native-webmcp-goal-validation.json), and the [WebMCP Extension interoperability record](docs/validation/2026-08-27-webmcp-extension-interoperability.md) for the detailed evidence boundary. The production review captures are in [docs/validation/screenshots](docs/validation/screenshots/).
 
 ## License
 

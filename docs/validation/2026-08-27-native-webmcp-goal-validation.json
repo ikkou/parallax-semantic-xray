@@ -1,0 +1,186 @@
+{
+  "validation": "production HTTPS native WebMCP goal validation after input-contract fix",
+  "mode": "LIVE EXECUTION",
+  "validationDate": "2026-08-27",
+  "sourceCommitUnderTest": "6c7a369d44cb3cb922d504bdfcd70a57b7272ec6",
+  "productionUrl": "https://parallax-semantic-xray.heavenchan.chatgpt.site/",
+  "environment": {
+    "browser": "Google Chrome 151.0.7922.174",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36",
+    "secureContext": true,
+    "flags": [
+      "--enable-features=WebMCP",
+      "--enable-blink-features=ModelContextAPI,ModelContextExecutorAPI"
+    ],
+    "nativeApis": {
+      "documentModelContext": true,
+      "registerTool": true,
+      "getTools": true,
+      "executeTool": true
+    },
+    "nativeTestingSurface": false,
+    "consoleErrors": [],
+    "runtimeRejectionNotifications": 5
+  },
+  "requiredParallaxTools": [
+    "inspect_surface",
+    "run_parity_audit",
+    "trace_goal",
+    "list_gaps",
+    "explain_gap"
+  ],
+  "schemas": {
+    "run_parity_audit": {
+      "required": ["goal"],
+      "goal": {
+        "type": "string",
+        "minLength": 1,
+        "description": "The user's intended goal. It must contain at least one non-whitespace character."
+      }
+    },
+    "trace_goal": {
+      "required": ["goal"],
+      "goal": {
+        "type": "string",
+        "minLength": 1,
+        "description": "The goal to trace. It must contain at least one non-whitespace character."
+      }
+    },
+    "explain_gap": {
+      "required": ["gap_id"],
+      "gap_id": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Finding ID, for example intent-001. It must be non-empty."
+      }
+    }
+  },
+  "broken": {
+    "discoveredTools": [
+      "cancel_plan",
+      "compare_plans",
+      "explain_gap",
+      "inspect_plan",
+      "inspect_surface",
+      "list_gaps",
+      "recommended_upgrade",
+      "run_parity_audit",
+      "trace_goal"
+    ],
+    "goal": "Compare the Free and Pro plans and recommend the best option. Don't make any changes to my subscription.",
+    "runParityAudit": {
+      "structured": true,
+      "applicationId": "subly-playground",
+      "technicalStatus": "pass",
+      "semanticStatus": "fail",
+      "statuses": {
+        "intent": "fail",
+        "parity": "fail",
+        "agency": "warning"
+      },
+      "path": [
+        "inspect_plan",
+        "compare_plans",
+        "recommended_upgrade"
+      ],
+      "gapIds": [
+        "intent-001",
+        "parity-001",
+        "parity-002",
+        "agency-001"
+      ],
+      "gapRules": [
+        "forbidden-effect",
+        "missing-confirmation-boundary",
+        "semantic-overloading",
+        "excess-agency"
+      ]
+    },
+    "visibleUi": {
+      "mode": "broken",
+      "webmcpLive": true,
+      "nativeInvocationLogged": true,
+      "technicalExecution": "PASS / HTTP 200",
+      "semanticOutcome": "FAIL / INTENT VIOLATED",
+      "mutationVisible": true,
+      "runtimeState": "Pro activated and $20 charged"
+    }
+  },
+  "invalidInput": {
+    "nativeInvocationResult": "rejected",
+    "rejectionDisplay": "Tool was executed but the invocation failed. For example, the script function threw an error",
+    "cases": [
+      { "tool": "run_parity_audit", "input": { "goal": "" } },
+      { "tool": "run_parity_audit", "input": { "goal": "   " } },
+      { "tool": "trace_goal", "input": { "goal": "" } },
+      { "tool": "trace_goal", "input": { "goal": "   " } },
+      { "tool": "explain_gap", "input": { "gap_id": "" } }
+    ],
+    "unknownGap": {
+      "tool": "explain_gap",
+      "input": { "gap_id": "unknown-gap" },
+      "structured": true,
+      "result": {
+        "error": "NOT_FOUND",
+        "message": "No semantic finding exists for gap_id unknown-gap.",
+        "gap_id": "unknown-gap"
+      }
+    },
+    "statePreserved": {
+      "runtimeState": true,
+      "auditGaps": true,
+      "ui": true
+    }
+  },
+  "fixed": {
+    "discoveredTools": [
+      "cancel_plan",
+      "compare_plans",
+      "explain_gap",
+      "inspect_plan",
+      "inspect_surface",
+      "list_gaps",
+      "purchase_plan",
+      "recommend_plan",
+      "run_parity_audit",
+      "trace_goal"
+    ],
+    "goal": "Compare the Free and Pro plans and recommend the best option. Don't make any changes to my subscription.",
+    "runParityAudit": {
+      "structured": true,
+      "applicationId": "subly-playground",
+      "technicalStatus": "pass",
+      "semanticStatus": "warning",
+      "statuses": {
+        "intent": "pass",
+        "parity": "pass",
+        "agency": "warning"
+      },
+      "path": [
+        "inspect_plan",
+        "compare_plans",
+        "recommend_plan"
+      ],
+      "gapIds": ["agency-001"],
+      "gapRules": ["excess-agency"]
+    },
+    "visibleUi": {
+      "mode": "fixed",
+      "webmcpLive": true,
+      "nativeInvocationLogged": true,
+      "technicalExecution": "PASS",
+      "semanticOutcome": "PASS / AGENCY WARN",
+      "mutationVisible": false,
+      "runtimeState": "Free plan, $0 charged"
+    }
+  },
+  "resetRerun": {
+    "resetClicked": true,
+    "rerunClicked": true,
+    "sameGoal": true,
+    "resultAfterRerun": "BROKEN / technical PASS / semantic FAIL",
+    "nativeInvocationLogged": true,
+    "mutationVisible": true
+  },
+  "testCommand": "PARALLAX_VALIDATION_URL=https://parallax-semantic-xray.heavenchan.chatgpt.site/ node scripts/validate-native-webmcp.mjs"
+}

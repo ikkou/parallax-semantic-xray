@@ -78,6 +78,8 @@ test("goal tools require non-empty runtime input and expose minLength schemas", 
     await assert.rejects(() => runAudit.execute(input), /INVALID_ARGUMENT: goal must be a non-empty string/);
     await assert.rejects(() => traceGoal.execute(input), /INVALID_ARGUMENT: goal must be a non-empty string/);
   }
+  await assert.rejects(() => runAudit.execute(null as unknown as Record<string, unknown>), /INVALID_ARGUMENT: goal must be a non-empty string/);
+  await assert.rejects(() => traceGoal.execute(null as unknown as Record<string, unknown>), /INVALID_ARGUMENT: goal must be a non-empty string/);
 
   assert.equal(auditCalls, 0);
   assert.equal(current.contract.intent.goal, "Original goal must remain unchanged after invalid calls.");
@@ -110,6 +112,7 @@ test("explain_gap rejects empty IDs and returns an explicit not-found result", a
   for (const input of [{ gap_id: "" }, { gap_id: "   " }, {}, { gap_id: null }]) {
     await assert.rejects(() => explainGap.execute(input), /INVALID_ARGUMENT: gap_id must be a non-empty string/);
   }
+  await assert.rejects(() => explainGap.execute(null as unknown as Record<string, unknown>), /INVALID_ARGUMENT: gap_id must be a non-empty string/);
 
   const missing = await explainGap.execute({ gap_id: "unknown-gap" });
   assert.deepEqual(missing, {

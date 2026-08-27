@@ -11,6 +11,7 @@ const ws = new WebSocket(target.webSocketDebuggerUrl);
 let nextId = 0;
 const pending = new Map();
 const consoleErrors = [];
+const runtimeExceptions = [];
 
 ws.addEventListener("message", (event) => {
   const message = JSON.parse(event.data);
@@ -21,7 +22,7 @@ ws.addEventListener("message", (event) => {
     });
   }
   if (message.method === "Runtime.exceptionThrown") {
-    consoleErrors.push({
+    runtimeExceptions.push({
       type: "exception",
       text: message.params?.exceptionDetails?.text ?? message.params?.exceptionDetails?.exception?.description ?? "exception",
     });
@@ -105,6 +106,18 @@ const invoke = async (name, input = {}) => call(`(async () => {
   return { type: typeof value, value };
 })()`);
 
+const invokeAttempt = async (name, input = {}) => call(`(async () => {
+  try {
+    const mc = document.modelContext;
+    const tool = (await mc.getTools()).find((candidate) => candidate.name === ${JSON.stringify(name)});
+    if (!tool) return { ok: false, error: "NOT_FOUND: tool is not registered." };
+    const value = await mc.executeTool(tool, ${JSON.stringify(JSON.stringify(input))});
+    return { ok: true, type: typeof value, value };
+  } catch (error) {
+    return { ok: false, error: String(error?.message ?? error) };
+  }
+})()`);
+
 const parseInvocation = (invocation) => {
   if (!invocation || invocation.missing) return invocation;
   const raw = invocation.value;
@@ -118,6 +131,25 @@ const parseInvocation = (invocation) => {
   }
   return {
     type: invocation.type,
+    structured: typeof parsed === "object" && parsed !== null,
+    value: parsed,
+  };
+};
+
+const parseAttempt = (attempt) => {
+  if (!attempt?.ok) return attempt;
+  const raw = attempt.value;
+  let parsed = raw;
+  if (typeof raw === "string") {
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      parsed = raw;
+    }
+  }
+  return {
+    ok: true,
+    type: attempt.type,
     structured: typeof parsed === "object" && parsed !== null,
     value: parsed,
   };
@@ -166,6 +198,31 @@ const brokenExplain = brokenAudit?.value?.gaps?.[0]?.id
   : null;
 await sleep(500);
 const brokenUi = await uiState();
+
+const invalidBefore = {
+  surface: brokenSurface?.value?.runtime_state,
+  gaps: brokenGaps?.value,
+  ui: brokenUi,
+};
+const invalidInputCases = [
+  { tool: "run_parity_audit", input: { goal: "" } },
+  { tool: "run_parity_audit", input: { goal: "   " } },
+  { tool: "trace_goal", input: { goal: "" } },
+  { tool: "trace_goal", input: { goal: "   " } },
+  { tool: "explain_gap", input: { gap_id: "" } },
+  { tool: "explain_gap", input: { gap_id: "unknown-gap" } },
+];
+const invalidCalls = [];
+for (const testCase of invalidInputCases) {
+  invalidCalls.push({
+    ...testCase,
+    result: parseAttempt(await invokeAttempt(testCase.tool, testCase.input)),
+  });
+}
+await sleep(350);
+const invalidAfterSurface = parseInvocation(await invoke("inspect_surface"));
+const invalidAfterGaps = parseInvocation(await invoke("list_gaps"));
+const invalidAfterUi = await uiState();
 
 const fixedClicked = await clickText("FIXED");
 await waitFor(
@@ -220,6 +277,14 @@ console.log(JSON.stringify({
     listGapsStructured: Array.isArray(brokenGaps?.value),
     explainGapStructured: Boolean(brokenExplain?.structured),
     ui: brokenUi,
+    invalidInput: {
+      calls: invalidCalls,
+      statePreserved: {
+        runtimeState: JSON.stringify(invalidBefore.surface) === JSON.stringify(invalidAfterSurface?.value?.runtime_state),
+        auditGaps: JSON.stringify(invalidBefore.gaps) === JSON.stringify(invalidAfterGaps?.value),
+        ui: JSON.stringify(invalidBefore.ui) === JSON.stringify(invalidAfterUi),
+      },
+    },
   },
   fixed: {
     fixedClicked,
@@ -239,5 +304,6 @@ console.log(JSON.stringify({
     finalUi,
   },
   consoleErrors,
+  runtimeExceptions,
 }, null, 2));
 ws.close();

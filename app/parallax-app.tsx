@@ -30,18 +30,17 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  type AuditResult,
-  type CapabilityRow,
-  type Lens,
   type StageStatus,
-  type ToolContract,
-  type TraceStep,
 } from "../lib/core";
+import type { ExecutionEvidence } from "../lib/core/evidence";
+import type { ToolContract } from "../lib/core/contract";
+import type { AuditResult } from "../lib/core/result";
+import type { ExecutionEvidenceV2 } from "../lib/core/v2/evidence";
+import type { AuditResultV2 } from "../lib/core/v2/result";
 import {
   getSublyContract,
   getSublyPath,
   SUBLY_APPLICATION_ID,
-  SUBLY_GOAL,
   SUBLY_PLAN_DATA,
   type DemoMode,
   type PlanId,
@@ -60,13 +59,24 @@ import {
 import {
   initialSublyAgentLogs,
   initialSublyHumanActions,
-  runSublyAudit,
 } from "../lib/playground/subly/scenarios";
 import { getSublyScenarioEvidence } from "../lib/playground/subly/evidence";
+import {
+  getSublyContractV2,
+  getSublyEvidenceV2,
+  getSublyToolsV2,
+  type SublyToolV2Definition,
+} from "../lib/playground/subly/v2";
 import { executeLocalTool } from "../lib/integration/webmcp/execute";
 import { getLocalTools, clearLocalTools } from "../lib/integration/webmcp/registry";
 import { registerTool, resetNativeRegistrations } from "../lib/integration/webmcp/register";
 import { getParallaxTools, type ParallaxToolContext } from "../lib/integration/parallaxTools";
+import {
+  runVersionedAudit,
+  type AuditModelVersion,
+  type VersionedAuditResult,
+} from "../lib/integration/versionedAudit";
+import { projectAudit, type XRayAuditViewModel, type XRayCapabilityRow, type XRayTraceStep } from "../lib/integration/xray";
 import { getWebMcpSupport } from "../lib/integration/webmcp/support";
 import type { EvidenceRecorder } from "../lib/core/evidence";
 import type { WebMcpSupport } from "../lib/integration/webmcp/types";
@@ -118,8 +128,15 @@ function toolRisk(tool?: Pick<ToolContract, "declaredEffects" | "annotations">) 
   return tool.annotations?.readOnlyHint === true ? "medium" : "high";
 }
 
-function technicalResultLabel(status: StageStatus, external = false) {
-  if (status === "pass") return external ? "PASS / SUCCESS" : "PASS / HTTP 200";
+function technicalResultLabel(
+  status: StageStatus,
+  audit: Pick<XRayAuditViewModel, "execution">,
+  external = false,
+) {
+  if (status === "pass") {
+    const hasHttp200 = audit.execution.some((entry) => entry.statusCode === 200);
+    return external ? "PASS / SUCCESS" : hasHttp200 ? "PASS / HTTP 200" : "PASS / SUCCESS";
+  }
   if (status === "warning") return "WARN / EVIDENCE INCOMPLETE";
   return "FAIL / TECHNICAL ERROR";
 }
@@ -176,7 +193,7 @@ function StageCard({
   index,
   visible,
 }: {
-  step: TraceStep;
+  step: XRayTraceStep;
   index: number;
   visible: boolean;
 }) {
@@ -196,13 +213,44 @@ function StageCard({
             <div className="trace-evidence">
               {step.evidence.slice(0, 3).map((item) => (
                 <span key={`${item.layer}-${item.label}-${item.value}`}>
-                  <strong>{item.layer}</strong> {item.label}: {item.value}
+                  <strong>{item.layer}</strong> {item.label}: {item.value}{item.source ? ` · ${item.source}` : ""}
                 </span>
               ))}
             </div>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function OutcomeSummary({ audit }: { audit: XRayAuditViewModel }) {
+  if (audit.modelVersion !== 2) return null;
+  if (
+    audit.policyOutcomes.length === 0 &&
+    audit.effectOutcomes.length === 0 &&
+    audit.boundaryEvidence.length === 0
+  ) {
+    return null;
+  }
+
+  return (
+    <div className="outcome-summary" aria-label="Observed policy and effect outcomes">
+      {audit.policyOutcomes.map((outcome) => (
+        <span className={`outcome-chip outcome-${outcome.decision}`} key={`${outcome.toolName}-${outcome.decision}`}>
+          POLICY OUTCOME: {outcome.decision.toUpperCase()} <small>{outcome.toolName} · {outcome.source}</small>
+        </span>
+      ))}
+      {audit.effectOutcomes.map((outcome) => (
+        <span className={`outcome-chip outcome-${outcome.outcome}`} key={`${outcome.toolName}-${outcome.effect}`}>
+          EFFECT OUTCOME: {outcome.outcome.toUpperCase()} <small>{outcome.effect} · {outcome.source}</small>
+        </span>
+      ))}
+      {audit.boundaryEvidence.map((boundary, index) => (
+        <span className="outcome-chip outcome-boundary" key={`${boundary.toolName ?? "boundary"}-${boundary.origin}-${boundary.type}-${index}`}>
+          {boundary.origin.toUpperCase()} BOUNDARY: {boundary.type.toUpperCase()} {boundary.status.toUpperCase()}
+        </span>
+      ))}
     </div>
   );
 }
@@ -226,6 +274,7 @@ function ExternalSurfaceSummary({ context }: { context: ValidationContext }) {
       <div className={`captured-marker ${isHumanApproved ? "is-approved" : "is-captured"}`}><CircleDot size={11} /> {context.authority} · EXTERNAL VALIDATION</div>
       <div className="external-summary-title">{context.label}</div>
       <div className="external-summary-meta"><span>source</span><a href={context.source} target="_blank" rel="noreferrer">{context.source}</a></div>
+      <div className="external-summary-meta"><span>evidence</span><strong>MODEL v{context.modelVersion} · {context.evidenceMode} · {context.evidenceCompleteness.toUpperCase()}</strong></div>
       <div className="evidence-chain" aria-label="Evidence trust model">
         <span>DECLARED</span><ArrowRight size={10} /> <span>OBSERVED</span>
         {isHumanApproved && <><ArrowRight size={10} /> <strong>HUMAN APPROVED</strong></>}
@@ -261,6 +310,22 @@ function ExternalSurfaceSummary({ context }: { context: ValidationContext }) {
           ))}
         </div>
       )}
+      {context.audit.boundaryEvidence.length > 0 && (
+        <div className="external-boundary-list observed-boundaries">
+          <span className="muted-label">OBSERVED BOUNDARIES</span>
+          {context.audit.boundaryEvidence.map((boundary, index) => (
+            <div key={`${boundary.origin}-${boundary.type}-${index}`}><CircleDot size={11} /> {boundary.origin.toUpperCase()} · {boundary.type} · {boundary.status}</div>
+          ))}
+        </div>
+      )}
+      {context.audit.surfaceRelations.length > 0 && (
+        <div className="external-boundary-list observed-boundaries">
+          <span className="muted-label">SURFACE RELATIONS</span>
+          {context.audit.surfaceRelations.map((relation, index) => (
+            <div key={`${relation.relation}-${index}`}><ArrowRight size={10} /> {relation.relation} · declared relationship</div>
+          ))}
+        </div>
+      )}
       {context.auditHistory && (
         <div className="audit-history-block">
           <div className="external-flow-heading"><Activity size={12} /> AUDIT HISTORY</div>
@@ -276,15 +341,38 @@ function ExternalSurfaceSummary({ context }: { context: ValidationContext }) {
       )}
       <div className="external-summary-note">
         {isHumanApproved
-          ? "Human-approved contract and observed evidence are re-run through the frozen Core."
+          ? "Human-approved contract and observed evidence are re-run through Core v2."
           : "Captured fixture · the source application is not cloned here; invoke it in its own environment to collect new evidence."}
       </div>
     </div>
   );
 }
 
+function runSublyVersionedAudit(
+  modelVersion: AuditModelVersion,
+  mode: DemoMode,
+  execution: ExecutionEvidence[],
+  executionComplete = true,
+): VersionedAuditResult {
+  if (modelVersion === 2) {
+    return runVersionedAudit({
+      modelVersion: 2,
+      contract: getSublyContractV2(mode),
+      evidence: getSublyEvidenceV2(mode, execution),
+    });
+  }
+
+  return runVersionedAudit({
+    modelVersion: 1,
+    contract: getSublyContract(mode),
+    execution,
+    executionComplete,
+  });
+}
+
 function App() {
   const [mode, setMode] = useState<DemoMode>("broken");
+  const [auditVersion, setAuditVersion] = useState<AuditModelVersion>(2);
   const [selectedContext, setSelectedContext] = useState<ValidationContextId>("subly-broken");
   const [selectedPlan, setSelectedPlan] = useState<PlanId>("pro");
   const [humanActions, setHumanActions] = useState<HumanAction[]>(initialSublyHumanActions);
@@ -292,10 +380,13 @@ function App() {
   const [selectedTool, setSelectedTool] = useState("recommended_upgrade");
   const initialRuntime = getSublyRuntimeState();
   const initialEvidence = getSublyScenarioEvidence("broken");
-  const [audit, setAudit] = useState<AuditResult>(() => runSublyAudit("broken"));
+  const initialAudit = runSublyVersionedAudit(2, "broken", initialEvidence);
+  const [audit, setAudit] = useState<XRayAuditViewModel>(() => projectAudit(initialAudit));
+  const rawAuditRef = useRef<VersionedAuditResult>(initialAudit);
   const [runtime, setRuntime] = useState<SublyRuntimeState>(initialRuntime);
   const executionRef = useRef(initialEvidence);
-  const [executionEvidence, setExecutionEvidence] = useState(initialEvidence);
+  const initialEvidenceV2 = getSublyEvidenceV2("broken", initialEvidence);
+  const [executionEvidence, setExecutionEvidence] = useState<ExecutionEvidenceV2[]>(initialEvidenceV2.entries);
   const [support, setSupport] = useState<WebMcpSupport>({
     supported: false,
     registration: false,
@@ -312,11 +403,13 @@ function App() {
   const isExternalContext = selectedContext !== "subly-broken" && selectedContext !== "subly-fixed";
   const activeContext = getValidationContext(selectedContext);
 
-  const onExternalAudit = useCallback((nextAudit: AuditResult) => {
-    setAudit(nextAudit);
+  const onExternalAudit = useCallback((nextAudit: VersionedAuditResult) => {
+    rawAuditRef.current = nextAudit;
+    const projectedAudit = projectAudit(nextAudit);
+    setAudit(projectedAudit);
     setNeedsRetest(false);
     setVisibleStages(6);
-    setSelectedTool(nextAudit.path[nextAudit.path.length - 1] ?? "recommended_upgrade");
+    setSelectedTool(projectedAudit.path[projectedAudit.path.length - 1] ?? "recommended_upgrade");
     setAgentLogs((current) => [
       ...current.slice(-4),
       { time: timeNow(), tool: "run_parity_audit", status: "done", detail: "WebMCP invocation · structured result returned" },
@@ -325,22 +418,25 @@ function App() {
 
   const recordEvidence = useCallback<EvidenceRecorder>((entry) => {
     executionRef.current = [...executionRef.current, entry];
-    setExecutionEvidence(executionRef.current);
-  }, []);
+    setExecutionEvidence(getSublyEvidenceV2(mode, executionRef.current).entries);
+  }, [mode]);
 
   const stateRef = useRef<ParallaxToolContext>({
+    modelVersion: 2,
     applicationId: SUBLY_APPLICATION_ID,
-    contract: getSublyContract("broken"),
-    audit,
-    execution: initialEvidence,
-    executionComplete: true,
+    contract: getSublyContractV2("broken"),
+    audit: initialAudit as AuditResultV2,
+    execution: initialEvidenceV2,
     runtimeState: initialRuntime,
     onAudit: onExternalAudit,
   });
 
-  const tools = useMemo(() => getSublyTools(mode, recordEvidence), [mode, recordEvidence]);
+  const tools = useMemo<Array<SublyToolDefinition | SublyToolV2Definition>>(
+    () => auditVersion === 2 ? getSublyToolsV2(mode, recordEvidence) : getSublyTools(mode, recordEvidence),
+    [auditVersion, mode, recordEvidence],
+  );
   const path = useMemo(() => getSublyPath(mode), [mode]);
-  const displayTools = useMemo<ToolContract[]>(
+  const displayTools = useMemo<(ToolContract | SublyToolDefinition | SublyToolV2Definition)[]>(
     () => isExternalContext ? activeContext.contract.agentSurface.tools : tools,
     [activeContext, isExternalContext, tools],
   );
@@ -354,16 +450,29 @@ function App() {
   useEffect(() => subscribeSublyRuntime(setRuntime), []);
 
   useEffect(() => {
-    stateRef.current = {
-      applicationId: SUBLY_APPLICATION_ID,
-      contract: getSublyContract(mode),
-      audit,
-      execution: executionEvidence,
-      executionComplete: true,
-      runtimeState: runtime,
-      onAudit: onExternalAudit,
-    };
-  }, [audit, executionEvidence, mode, onExternalAudit, runtime]);
+    if (auditVersion === 2) {
+      stateRef.current = {
+        modelVersion: 2,
+        applicationId: SUBLY_APPLICATION_ID,
+        contract: getSublyContractV2(mode),
+        audit: rawAuditRef.current as AuditResultV2,
+        execution: getSublyEvidenceV2(mode, executionRef.current),
+        runtimeState: runtime,
+        onAudit: onExternalAudit,
+      };
+    } else {
+      stateRef.current = {
+        modelVersion: 1,
+        applicationId: SUBLY_APPLICATION_ID,
+        contract: getSublyContract(mode),
+        audit: rawAuditRef.current as AuditResult,
+        execution: executionRef.current,
+        executionComplete: true,
+        runtimeState: runtime,
+        onAudit: onExternalAudit,
+      };
+    }
+  }, [auditVersion, executionEvidence, mode, onExternalAudit, runtime]);
 
   useEffect(() => {
     if (!isExternalContext) return;
@@ -415,7 +524,7 @@ function App() {
     ).then(() => {
       setRegisteredCount(getLocalTools(SUBLY_APPLICATION_ID).length);
     });
-  }, [activeContext, isExternalContext, mode, tools]);
+  }, [activeContext, auditVersion, isExternalContext, mode, tools]);
 
   const addHumanAction = useCallback((label: string, detail: string, tone: HumanAction["tone"] = "normal") => {
     setHumanActions((current) => [
@@ -423,6 +532,16 @@ function App() {
       { step: current.length + 1, time: timeNow(), label, detail, tone },
     ]);
   }, []);
+
+  const selectAuditVersion = useCallback((nextVersion: AuditModelVersion) => {
+    if (nextVersion === auditVersion || isExternalContext) return;
+    const nextAudit = runSublyVersionedAudit(nextVersion, mode, executionRef.current, true);
+    rawAuditRef.current = nextAudit;
+    setAudit(projectAudit(nextAudit));
+    setAuditVersion(nextVersion);
+    setNeedsRetest(false);
+    setVisibleStages(6);
+  }, [auditVersion, isExternalContext, mode]);
 
   const runAuditSequence = useCallback(async () => {
     if (isRunning || isExternalContext) return;
@@ -463,10 +582,12 @@ function App() {
       await wait(240);
     }
 
-    setAudit(runSublyAudit(mode, SUBLY_GOAL, executionRef.current, true));
+    const nextAudit = runSublyVersionedAudit(auditVersion, mode, executionRef.current, true);
+    rawAuditRef.current = nextAudit;
+    setAudit(projectAudit(nextAudit));
     setVisibleStages(6);
     setIsRunning(false);
-  }, [isExternalContext, isRunning, mode, path]);
+  }, [auditVersion, isExternalContext, isRunning, mode, path]);
 
   const executeSingleTool = useCallback(async (name: string) => {
     if (isExternalContext) return;
@@ -491,8 +612,10 @@ function App() {
       ),
     );
     setVisibleStages(6);
-    setAudit(runSublyAudit(mode, SUBLY_GOAL, executionRef.current, true));
-  }, [isExternalContext, isRunning, mode]);
+    const nextAudit = runSublyVersionedAudit(auditVersion, mode, executionRef.current, true);
+    rawAuditRef.current = nextAudit;
+    setAudit(projectAudit(nextAudit));
+  }, [auditVersion, isExternalContext, isRunning, mode]);
 
   const selectPlan = (plan: PlanId) => {
     setSelectedPlan(plan);
@@ -516,7 +639,7 @@ function App() {
     resetSublyRuntime();
     const fixedEvidence = getSublyScenarioEvidence("fixed");
     executionRef.current = fixedEvidence;
-    setExecutionEvidence(fixedEvidence);
+    setExecutionEvidence(getSublyEvidenceV2("fixed", fixedEvidence).entries);
     setMode("fixed");
     setSelectedContext("subly-fixed");
     setSelectedTool("recommend_plan");
@@ -526,14 +649,16 @@ function App() {
       { time: timeNow(), tool: "recommend_plan", status: "queued", detail: "read-only replacement ready" },
       { time: timeNow(), tool: "purchase_plan", status: "queued", detail: "explicit confirmation boundary" },
     ]);
-    setAudit(runSublyAudit("fixed", SUBLY_GOAL, fixedEvidence, true));
+    const nextAudit = runSublyVersionedAudit(auditVersion, "fixed", fixedEvidence, true);
+    rawAuditRef.current = nextAudit;
+    setAudit(projectAudit(nextAudit));
   };
 
   const resetScenario = () => {
     resetSublyRuntime();
     const brokenEvidence = getSublyScenarioEvidence("broken");
     executionRef.current = brokenEvidence;
-    setExecutionEvidence(brokenEvidence);
+    setExecutionEvidence(getSublyEvidenceV2("broken", brokenEvidence).entries);
     setMode("broken");
     setSelectedContext("subly-broken");
     setSelectedPlan("pro");
@@ -542,11 +667,13 @@ function App() {
     setVisibleStages(6);
     setHumanActions(initialSublyHumanActions);
     setAgentLogs(initialSublyAgentLogs);
-    setAudit(runSublyAudit("broken", SUBLY_GOAL, brokenEvidence, true));
+    const nextAudit = runSublyVersionedAudit(auditVersion, "broken", brokenEvidence, true);
+    rawAuditRef.current = nextAudit;
+    setAudit(projectAudit(nextAudit));
   };
 
   const statusCounts = audit.gaps.length;
-  const semanticBreak = audit.statuses.intent === "fail" || audit.statuses.parity === "fail" || audit.technicalStatus === "fail";
+  const semanticBreak = audit.semanticStatus === "fail";
   const agencyWarning = audit.statuses.agency === "warning";
   const semanticResultLabel = semanticBreak
     ? audit.statuses.intent === "fail"
@@ -554,7 +681,9 @@ function App() {
       : audit.statuses.parity === "fail"
         ? "FAIL / SEMANTIC DRIFT"
         : "FAIL / TECHNICAL ERROR"
-    : audit.technicalStatus !== "pass"
+    : audit.semanticStatus === "warning"
+      ? "WARN / SEMANTIC QUALIFIER"
+      : audit.technicalStatus !== "pass"
       ? "WARN / EVIDENCE INCOMPLETE"
       : agencyWarning
         ? "PASS / AGENCY WARN"
@@ -562,14 +691,21 @@ function App() {
   const activeTool = selectedToolDefinition ?? displayTools[0];
   const selectedContextLabel = activeContext.label;
   const displayedToolCount = isExternalContext ? displayTools.length : registeredCount || tools.length + 5;
+  const viewContract = isExternalContext
+    ? activeContext.contract
+    : auditVersion === 2
+      ? getSublyContractV2(mode)
+      : getSublyContract(mode);
   const semanticBreakDetail = audit.statuses.intent === "fail"
     ? "Observed execution violated a declared intent guardrail"
     : audit.statuses.parity === "fail"
       ? "A declared Human Surface boundary has no equivalent Agent Surface boundary"
       : "Technical execution failed before semantic completion";
-  const semanticPassTitle = isExternalContext
-    ? activeContext.authority === "HUMAN APPROVED" ? "HUMAN-APPROVED PATH VERIFIED" : "CAPTURED PATH VERIFIED"
-    : "SEMANTIC PATH VERIFIED";
+  const semanticPassTitle = audit.semanticStatus === "warning"
+    ? isExternalContext ? "PATH VERIFIED WITH QUALIFIER" : "SEMANTIC PATH QUALIFIED"
+    : isExternalContext
+      ? activeContext.authority === "HUMAN APPROVED" ? "HUMAN-APPROVED PATH VERIFIED" : "CAPTURED PATH VERIFIED"
+      : "SEMANTIC PATH VERIFIED";
   const semanticPassDetail = isExternalContext
     ? audit.semanticStatus === "warning"
       ? "No direct intent violation was observed; a non-fatal contract asymmetry remains."
@@ -616,6 +752,18 @@ function App() {
           <div className="strip-caption">Human semantic surface <ArrowRight size={13} /> Agent tool surface</div>
         </div>
         <div className="mode-controls">
+          <label className="audit-version-select">
+            <span>MODEL</span>
+            <select
+              aria-label="Audit model version"
+              value={auditVersion}
+              disabled={isExternalContext}
+              onChange={(event) => selectAuditVersion(Number(event.target.value) as AuditModelVersion)}
+            >
+              <option value="2">v2 · production</option>
+              <option value="1">v1 · fallback</option>
+            </select>
+          </label>
           {isExternalContext ? (
             <span className={`captured-chip ${activeContext.authority === "HUMAN APPROVED" ? "is-approved" : "is-captured"}`}><CircleDot size={11} /> {activeContext.authority} · READ-ONLY VIEW</span>
           ) : (
@@ -772,7 +920,7 @@ function App() {
           <div className="trace-goal-card">
             <div className="trace-goal-title"><span className="mini-number">01</span> Goal under inspection</div>
             <div className="trace-goal-copy">{audit.goal}</div>
-            <div className="trace-goal-tags">{activeContext.contract.intent.forbiddenEffects.map((effect) => <span key={effect}>forbidden: {effect}</span>)}</div>
+            <div className="trace-goal-tags">{viewContract.intent.forbiddenEffects.map((effect) => <span key={effect}>forbidden: {effect}</span>)}</div>
           </div>
           <div className={`trace-list ${isRunning ? "is-running" : ""}`}>
             {audit.steps.map((step, index) => <StageCard key={step.type} step={step} index={index} visible={index < visibleStages} />)}
@@ -784,15 +932,16 @@ function App() {
                 <div className="break-title">SEMANTIC BREAK DETECTED</div>
                 <div className="break-detail">{semanticBreakDetail}</div>
                 <div className="result-contrast">
-                  <div className="result-item result-technical"><span>TECHNICAL RESULT</span><strong>{technicalResultLabel(audit.technicalStatus, isExternalContext)}</strong></div>
+                  <div className="result-item result-technical"><span>TECHNICAL RESULT</span><strong>{technicalResultLabel(audit.technicalStatus, audit, isExternalContext)}</strong></div>
                   <div className="result-item result-semantic"><span>SEMANTIC RESULT</span><strong>{semanticResultLabel}</strong></div>
                 </div>
               </div>
               <div className="break-code">GAP / {audit.gaps[0]?.id?.toUpperCase() ?? "—"}</div>
             </div>
           ) : (
-            <div className="semantic-pass"><div className="pass-icon"><Check size={18} /></div><div className="break-copy"><div className="pass-title">{semanticPassTitle}</div><div className="pass-detail">{semanticPassDetail}</div><div className="result-contrast"><div className="result-item result-technical"><span>TECHNICAL RESULT</span><strong>{technicalResultLabel(audit.technicalStatus, isExternalContext)}</strong></div><div className="result-item result-semantic"><span>SEMANTIC RESULT</span><strong>{semanticResultLabel}</strong></div></div></div><span className="break-code">VERIFY / {agencyWarning ? "WARN" : "PASS"}</span></div>
+            <div className={`semantic-pass ${audit.semanticStatus === "warning" ? "is-warning" : ""}`}><div className="pass-icon">{audit.semanticStatus === "warning" ? <AlertTriangle size={18} /> : <Check size={18} />}</div><div className="break-copy"><div className="pass-title">{semanticPassTitle}</div><div className="pass-detail">{semanticPassDetail}</div><div className="result-contrast"><div className="result-item result-technical"><span>TECHNICAL RESULT</span><strong>{technicalResultLabel(audit.technicalStatus, audit, isExternalContext)}</strong></div><div className={`result-item result-semantic ${audit.semanticStatus === "warning" ? "is-warning" : ""}`}><span>SEMANTIC RESULT</span><strong>{semanticResultLabel}</strong></div></div></div><span className="break-code">VERIFY / {agencyWarning ? "WARN" : "PASS"}</span></div>
           )}
+          <OutcomeSummary audit={audit} />
           <div className="trace-footer"><span><span className="muted-label">TRACE</span> {isExternalContext ? `${selectedContextLabel} / captured` : "trc_01J8RX5Z6VQ4K2B9M3H6D7E1F"}</span><span><span className="muted-label">LATENCY</span> {isRunning ? "—" : isExternalContext ? "captured" : "842ms"}</span><span><span className="muted-label">CONTRACT</span> {activeTool?.name ?? "—"}</span></div>
         </section>
 
@@ -897,20 +1046,25 @@ function App() {
 
       <footer className="app-footer">
         <span>PARALLAX / Semantic supply chain inspection</span>
-        <span><span className="muted-label">MODE</span> {isExternalContext ? `${activeContext.authority} VALIDATION` : mode.toUpperCase()} <span className="footer-divider" /><span className="muted-label">WEBMCP</span> {support.label} <span className="footer-divider" /><span className="muted-label">SURFACE</span> {displayedToolCount} tools</span>
+        <span><span className="muted-label">MODEL</span> v{audit.modelVersion} <span className="footer-divider" /><span className="muted-label">MODE</span> {isExternalContext ? `${activeContext.authority} VALIDATION` : mode.toUpperCase()} <span className="footer-divider" /><span className="muted-label">WEBMCP</span> {support.label} <span className="footer-divider" /><span className="muted-label">SURFACE</span> {displayedToolCount} tools</span>
         <button className="footer-link"><Copy size={12} /> Copy audit JSON</button>
       </footer>
     </main>
   );
 }
 
-function CapabilityTableRow({ row }: { row: CapabilityRow }) {
+function CapabilityTableRow({ row }: { row: XRayCapabilityRow }) {
+  const relation = "relation" in row ? row.relation : undefined;
+
   return (
     <tr className={`matrix-row matrix-${row.alignment.toLowerCase()}`}>
       <td className="matrix-capability">{row.capability}</td>
       <td><CapabilityCell value={row.human} /></td>
       <td><CapabilityCell value={row.agent} /></td>
-      <td><span className={`alignment alignment-${row.alignment.toLowerCase()}`}>{row.alignment}</span></td>
+      <td>
+        <span className={`alignment alignment-${row.alignment.toLowerCase()}`}>{row.alignment}</span>
+        {relation && relation !== "UNRESOLVED" && <span className={`matrix-relation relation-${relation.toLowerCase()}`}>{relation}</span>}
+      </td>
       <td className="matrix-gap">{row.gap}</td>
     </tr>
   );

@@ -9,8 +9,13 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "parallax": "node scripts/parallax.mjs",
+    "test:cli": "node --test scripts/parallax.test.mjs",
+    "test:integration": "node --test scripts/parallax.integration.test.mjs",
+    "test:v2": "V2_TEST_DIR=$(mktemp -d /tmp/parallax-v2-test.XXXXXX) && tsc --module commonjs --target es2020 --moduleResolution node --esModuleInterop --strict --skipLibCheck --noEmitOnError --rootDir . --outDir \"$V2_TEST_DIR\" lib/core/contract.ts lib/core/evidence.ts lib/core/result.ts lib/core/v2/*.ts && node --test \"$V2_TEST_DIR/lib/core/v2/audit.test.js\"",
+    "test:cli:v2": "node --test scripts/parallax.v2.test.mjs",
     "test:core": "CORE_TEST_DIR=$(mktemp -d /tmp/parallax-core-test.XXXXXX) && tsc --module commonjs --target es2020 --moduleResolution node --esModuleInterop --strict --skipLibCheck --outDir \"$CORE_TEST_DIR\" lib/core/*.ts && node --test \"$CORE_TEST_DIR\"/*.test.js",
-    "test:contracts": "CONTRACT_TEST_DIR=$(mktemp -d /tmp/parallax-contract-test.XXXXXX) && tsc --module commonjs --target es2020 --moduleResolution node --esModuleInterop --strict --skipLibCheck --rootDir . --outDir \"$CONTRACT_TEST_DIR\" lib/core/*.ts lib/integration/parallaxTools.ts lib/integration/parallaxTools.test.ts lib/integration/webmcp/types.ts && node --test \"$CONTRACT_TEST_DIR/lib/integration/parallaxTools.test.js\""
+    "test:contracts": "CONTRACT_TEST_DIR=$(mktemp -d /tmp/parallax-contract-test.XXXXXX) && tsc --module commonjs --target es2020 --moduleResolution node --esModuleInterop --strict --skipLibCheck --rootDir . --outDir \"$CONTRACT_TEST_DIR\" lib/core/*.ts lib/integration/parallaxTools.ts lib/integration/parallaxTools.test.ts lib/integration/webmcp/types.ts lib/integration/webmcp/registry.ts lib/integration/webmcp/registry.test.ts && node --test \"$CONTRACT_TEST_DIR/lib/integration/parallaxTools.test.js\" \"$CONTRACT_TEST_DIR/lib/integration/webmcp/registry.test.js\""
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

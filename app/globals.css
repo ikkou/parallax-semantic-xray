@@ -428,6 +428,37 @@ button:focus-visible {
   color: var(--green);
 }
 
+.audit-version-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 29px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  background: #0a0d12;
+  color: var(--muted-deep);
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.audit-version-select select {
+  min-width: 112px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-soft);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.audit-version-select select:disabled {
+  color: var(--muted);
+  opacity: 1;
+}
+
 .subtle-button,
 .primary-button {
   height: 29px;
@@ -697,6 +728,51 @@ button:focus-visible {
   color: var(--violet-bright);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.outcome-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 9px 13px 0;
+}
+
+.outcome-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px;
+  border: 1px solid var(--border);
+  background: rgba(8, 12, 17, 0.6);
+  color: var(--text-soft);
+  font-family: var(--mono);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.outcome-chip small {
+  color: var(--muted);
+  font-size: 7px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.outcome-allow,
+.outcome-occurred {
+  border-color: rgba(94, 218, 160, 0.46);
+  color: var(--green);
+}
+
+.outcome-reject,
+.outcome-prevented {
+  border-color: rgba(255, 83, 104, 0.52);
+  color: var(--red-bright);
+}
+
+.outcome-boundary {
+  border-color: rgba(173, 157, 255, 0.38);
+  color: var(--violet-bright);
 }
 
 .evidence-chain {
@@ -1557,6 +1633,12 @@ button:focus-visible {
   box-shadow: 0 0 24px rgba(94, 218, 160, 0.08);
 }
 
+.semantic-pass.is-warning {
+  border-color: var(--amber);
+  background: linear-gradient(100deg, rgba(245, 183, 77, 0.14), rgba(245, 183, 77, 0.03));
+  box-shadow: 0 0 24px rgba(245, 183, 77, 0.08);
+}
+
 .break-icon,
 .pass-icon {
   display: grid;
@@ -1571,6 +1653,11 @@ button:focus-visible {
 .pass-icon {
   border-color: var(--green);
   color: var(--green);
+}
+
+.semantic-pass.is-warning .pass-icon {
+  border-color: var(--amber);
+  color: var(--amber);
 }
 
 .break-copy {
@@ -1591,6 +1678,10 @@ button:focus-visible {
   color: var(--green);
 }
 
+.semantic-pass.is-warning .pass-title {
+  color: var(--amber);
+}
+
 .break-detail,
 .pass-detail {
   margin-top: 7px;
@@ -1602,6 +1693,10 @@ button:focus-visible {
 
 .pass-detail {
   color: #a4c9b4;
+}
+
+.semantic-pass.is-warning .pass-detail {
+  color: #d4bb88;
 }
 
 .break-detail strong {
@@ -1657,6 +1752,16 @@ button:focus-visible {
 
 .semantic-pass .result-semantic strong {
   color: var(--green);
+}
+
+.result-semantic.is-warning,
+.semantic-pass.is-warning .result-semantic {
+  border-color: rgba(245, 183, 77, 0.52);
+}
+
+.result-semantic.is-warning strong,
+.semantic-pass.is-warning .result-semantic strong {
+  color: var(--amber);
 }
 
 .break-arrow {
@@ -2292,6 +2397,14 @@ button:focus-visible {
 
 .matrix-cross {
   color: var(--red);
+}
+
+.matrix-relation {
+  display: inline-block;
+  margin-left: 5px;
+  color: var(--violet-bright);
+  font-size: 7px;
+  letter-spacing: 0.03em;
 }
 
 .alignment {

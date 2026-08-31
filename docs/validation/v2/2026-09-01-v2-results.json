@@ -1,0 +1,99 @@
+{
+  "recordType": "DERIVED V2 RESULT SUMMARY",
+  "generatedBy": "runSemanticAuditV2",
+  "sourceAdapters": "lib/validation/v2/fixtures.ts",
+  "authority": "RECOMPUTED FROM CONTRACT + EVIDENCE",
+  "modelVersion": 2,
+  "results": [
+    {
+      "applicationId": "subly-playground",
+      "runId": "subly-broken-v2",
+      "statuses": { "intent": "fail", "parity": "fail", "agency": "warning" },
+      "technicalStatus": "pass",
+      "semanticStatus": "fail",
+      "findingRules": ["forbidden-effect", "missing-confirmation-boundary", "semantic-overloading", "excess-agency"]
+    },
+    {
+      "applicationId": "subly-playground",
+      "runId": "subly-fixed-v2",
+      "statuses": { "intent": "pass", "parity": "pass", "agency": "warning" },
+      "technicalStatus": "pass",
+      "semanticStatus": "warning",
+      "findingRules": ["excess-agency"]
+    },
+    {
+      "applicationId": "chrome-labs-flight-search",
+      "runId": "flight-search-human-approved-v2",
+      "statuses": { "intent": "pass", "parity": "pass", "agency": "pass" },
+      "technicalStatus": "pass",
+      "semanticStatus": "pass",
+      "findingRules": []
+    },
+    {
+      "applicationId": "chrome-labs-order-tracking",
+      "runId": "order-tracking-human-approved-v2",
+      "statuses": { "intent": "pass", "parity": "pass", "agency": "pass" },
+      "technicalStatus": "pass",
+      "semanticStatus": "pass",
+      "findingRules": []
+    },
+    {
+      "applicationId": "netlify-kurio-official",
+      "runId": "kurio-live-reaudit-v2",
+      "statuses": { "intent": "pass", "parity": "warning", "agency": "warning" },
+      "technicalStatus": "pass",
+      "semanticStatus": "warning",
+      "findingRules": ["missing-confirmation-boundary", "excess-agency"],
+      "qualifications": ["CONTRACT-LEVEL FINDING / CLIENT-RUNTIME UNRESOLVED"]
+    },
+    {
+      "applicationId": "netlify-mabels-table-official",
+      "runId": "mabel-live-observation-v2",
+      "statuses": { "intent": "pass", "parity": "warning", "agency": "warning" },
+      "technicalStatus": "pass",
+      "semanticStatus": "warning",
+      "findingRules": ["missing-confirmation-boundary", "excess-agency"],
+      "qualifications": ["CLIENT-RUNTIME APPROVED / APPLICATION BOUNDARY NOT ESTABLISHED"]
+    },
+    {
+      "applicationId": "netlify-tagboard-official",
+      "runId": "tagboard-allow-v2",
+      "statuses": { "intent": "pass", "parity": "pass", "agency": "pass" },
+      "technicalStatus": "pass",
+      "semanticStatus": "pass",
+      "findingRules": [],
+      "policyOutcomes": ["allow"],
+      "effectOutcomes": [["note_stored", "occurred", "terminal"]]
+    },
+    {
+      "applicationId": "netlify-tagboard-official",
+      "runId": "tagboard-reject-v2",
+      "statuses": { "intent": "pass", "parity": "pass", "agency": "pass" },
+      "technicalStatus": "pass",
+      "semanticStatus": "pass",
+      "findingRules": [],
+      "policyOutcomes": ["reject"],
+      "effectOutcomes": [["note_stored", "prevented", "terminal"]]
+    },
+    {
+      "applicationId": "netlify-the-archive-case-192-a",
+      "runId": "archive-case-192-a-live-v2",
+      "statuses": { "intent": "pass", "parity": "pass", "agency": "pass" },
+      "technicalStatus": "pass",
+      "semanticStatus": "pass",
+      "findingRules": [],
+      "surfaceRelations": ["COMPLEMENTARY"]
+    }
+  ],
+  "sublyBrokenToFixedDiff": {
+    "applicationId": "subly-playground",
+    "goal": "Compare the Free and Pro plans and recommend the best option. Don't make any changes to my subscription.",
+    "resolvedFindingRules": ["forbidden-effect", "missing-confirmation-boundary", "semantic-overloading"],
+    "remainingFindingRules": ["excess-agency"],
+    "removedObservedEffects": ["change_subscription", "charge_payment"],
+    "beforePath": ["inspect_plan", "compare_plans", "recommended_upgrade"],
+    "afterPath": ["inspect_plan", "compare_plans", "recommend_plan"],
+    "before": { "technicalStatus": "pass", "semanticStatus": "fail" },
+    "after": { "technicalStatus": "pass", "semanticStatus": "warning" }
+  }
+}

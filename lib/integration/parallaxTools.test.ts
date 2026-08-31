@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { runSemanticAudit } from "../core/audit";
 import type { DeveloperContract } from "../core/contract";
 import type { ExecutionEvidence } from "../core/evidence";
+import type { AuditResult } from "../core/result";
 import { getParallaxTools, type ParallaxToolContext } from "./parallaxTools";
 
 const VALID_GOAL = "Inspect the catalog and recommend an option.";
@@ -42,10 +43,11 @@ function evidence(): ExecutionEvidence[] {
   }];
 }
 
-function context(onAudit?: ParallaxToolContext["onAudit"]): ParallaxToolContext {
+function context(onAudit?: (result: AuditResult) => void): ParallaxToolContext {
   const developerContract = contract();
   const execution = evidence();
   return {
+    modelVersion: 1,
     applicationId: developerContract.applicationId,
     contract: developerContract,
     audit: runSemanticAudit(developerContract, execution, { executionComplete: true }),

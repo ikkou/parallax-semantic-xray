@@ -236,13 +236,13 @@ function OutcomeSummary({ audit }: { audit: XRayAuditViewModel }) {
 
   return (
     <div className="outcome-summary" aria-label="Observed policy and effect outcomes">
-      {audit.policyOutcomes.map((outcome) => (
-        <span className={`outcome-chip outcome-${outcome.decision}`} key={`${outcome.toolName}-${outcome.decision}`}>
+      {audit.policyOutcomes.map((outcome, index) => (
+        <span className={`outcome-chip outcome-${outcome.decision}`} key={`${outcome.toolName}-${outcome.decision}-${index}`}>
           POLICY OUTCOME: {outcome.decision.toUpperCase()} <small>{outcome.toolName} · {outcome.source}</small>
         </span>
       ))}
-      {audit.effectOutcomes.map((outcome) => (
-        <span className={`outcome-chip outcome-${outcome.outcome}`} key={`${outcome.toolName}-${outcome.effect}`}>
+      {audit.effectOutcomes.map((outcome, index) => (
+        <span className={`outcome-chip outcome-${outcome.outcome}`} key={`${outcome.toolName}-${outcome.effect}-${index}`}>
           EFFECT OUTCOME: {outcome.outcome.toUpperCase()} <small>{outcome.effect} · {outcome.source}</small>
         </span>
       ))}

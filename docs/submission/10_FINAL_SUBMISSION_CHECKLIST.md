@@ -91,7 +91,7 @@ Current package state: prepared, not submitted
 - [ ] LICENSE is present.
 - [ ] Build and tests pass on the exact candidate.
 - [x] Publication visibility change is separately authorized.
-- [ ] Public repository URL is verified after publication.
+- [x] Public repository URL is verified after publication.
 - [ ] Production URL is rechecked after publication.
 - [ ] No public link is invented before it exists.
 

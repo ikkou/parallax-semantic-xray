@@ -1,9 +1,9 @@
 # PARALLAX Repository Publication Handoff
 
-Status: instructions for a later authorized gate only
+Status: repository publication completed; video and Devpost remain pending
 Current action: none
 
-This document does not publish, change visibility, rewrite history, or push any branch. It defines the next-gate handoff after the submission package has been reviewed.
+This document records the publication handoff and its guardrails. The repository publication step has completed; the video upload and Devpost submission remain separate, pending steps.
 
 ## Required starting state
 
@@ -17,7 +17,7 @@ This document does not publish, change visibility, rewrite history, or push any 
 
 ## Publication sequence
 
-Perform these steps only after explicit publication authorization:
+These steps were performed after explicit publication authorization:
 
 1. Run a final secret and credential scan over tracked source and documentation.
 2. Scan for absolute local filesystem paths and remove any unintended private paths.

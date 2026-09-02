@@ -24,7 +24,7 @@ Two historical native WebMCP extension captures include browser chrome and unrel
 ## Repository publication
 
 - Intended public repository URL: https://github.com/ikkou/parallax-semantic-xray
-- Public repository HEAD: `TO BE VERIFIED AFTER PUSH`
+- Initial public repository commit: `952f180f2a4781ea990115d2be67f53189291b62`
 - Public repository visibility: `Public`
 - Repository license: MIT
 
@@ -76,4 +76,4 @@ Until those destinations are identified, the correct gate decision is:
 
 **BLOCKED**
 
-Repository publication is authorized and staged for this gate. No video upload, Sites redeploy, or Devpost submission was performed.
+Repository publication completed at the initial commit above. No video upload, Sites redeploy, or Devpost submission was performed.

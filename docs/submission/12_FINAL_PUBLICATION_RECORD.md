@@ -19,7 +19,7 @@ The current live Sites version points to the reviewed v2 SHA. No redeployment wa
 
 ## Presentation review note
 
-Two historical native WebMCP extension captures include browser chrome and unrelated tabs. Visual inspection found no visible token, credential, or personal email. They remain historical validation evidence and were not used as final Devpost media; they should be reviewed before public repository publication. No historical evidence was deleted or altered during this gate.
+Two historical native WebMCP extension captures include browser chrome and unrelated tabs. Visual inspection found no visible token, credential, or personal email. They remain historical validation evidence in the public repository and were not used as final Devpost media; they should be reviewed before final submission. No historical evidence was deleted or altered during this gate.
 
 ## Repository publication
 
@@ -77,4 +77,4 @@ Until those destinations are identified, the correct gate decision is:
 
 **BLOCKED**
 
-Repository publication completed at the initial commit above. No video upload, Sites redeploy, or Devpost submission was performed.
+Repository publication completed at the initial commit above, and the frozen video upload completed separately. No Sites redeploy or Challenge submission was performed.

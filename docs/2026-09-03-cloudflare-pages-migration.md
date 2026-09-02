@@ -23,6 +23,8 @@ parallax.oneshotstar.com CNAME parallax-semantic-xray.pages.dev
 
 The record is proxied by Cloudflare. No other Pages project, DNS record, repository visibility setting, Devpost item, or video item was changed during this migration.
 
+The final Cloudflare Pages custom-domain status is `Active` with `SSL enabled`.
+
 ## Production smoke evidence
 
 - `https://parallax.oneshotstar.com/` returned HTTP 200 over HTTPS.

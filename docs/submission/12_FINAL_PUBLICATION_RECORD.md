@@ -1,6 +1,6 @@
 # PARALLAX — Final Publication Record
 
-Status: `BLOCKED` — video and Devpost remain pending
+Status: `BLOCKED` — video release and Challenge submission remain pending
 
 Date: 2026-09-02 (JST)
 
@@ -32,22 +32,23 @@ The repository was created as a separate public GitHub source repository. The pr
 
 ## Final demo video
 
-- Public video URL: `NOT ESTABLISHED`
+- Public video URL: https://youtu.be/YXIoZpCsYt0
+- Video visibility: `PUBLIC RELEASE SCHEDULED`; current public accessibility remains unverified
 - Frozen source artifact: `PARALLAX_demo_v2_FINAL_v2.mp4`
 - Source SHA-256: `28965d14821efb7e087694664858526cc555dea403f64e24891e5a94bdf0c74f`
 - Duration: `161.466016` seconds (`2:41.466`)
 - Verified streams: H.264 1920x1080 at 30 fps, AAC 44.1 kHz mono, mov_text subtitles
 
-The exact frozen video was not uploaded because the instruction did not identify the intended Challenge-compatible host, account, or visibility. No unrelated video was substituted.
+The exact frozen video is uploaded to the verified YouTube video URL above. YouTube Studio currently reports `公開予約`; no alternate or unrelated video was substituted.
 
 ## Devpost
 
 - Existing draft: https://devpost.com/software/a-f80hps
-- State: `NOT SUBMITTED`
+- State: `PROJECT PUBLISHED`; Challenge submission `NOT SUBMITTED`
 - Final Submit action: not performed
-- Repository and video fields: not populated because their public URLs are not established
+- Repository, production, and video fields: populated in the project record
 
-The draft remains untouched at the publication gate. The project must be visually reviewed after the verified repository and video URLs are entered; the final Devpost Submit action remains a human-controlled step.
+The project page is published with the verified repository, production, and video URLs. The video is still scheduled for release, so public playback must be rechecked after the scheduled time. The final Challenge Submit action remains a human-controlled step.
 
 ## Local verification
 
@@ -69,8 +70,8 @@ The previous native Chrome 151 validation remains the evidence for native WebMCP
 
 ## Remaining publication blockers
 
-1. Supply the exact video host/account and intended visibility for the frozen video upload.
-2. Populate and visually review the Devpost draft after the repository and video URLs are verified. The final Submit action remains human-controlled.
+1. Verify public video accessibility after the scheduled release.
+2. Visually review the published Devpost project after the video URL is accessible. The final Challenge Submit action remains human-controlled.
 
 Until those destinations are identified, the correct gate decision is:
 

@@ -3,7 +3,7 @@
 Status: final copy draft; do not submit from this file
 Production URL: https://parallax-semantic-xray.heavenchan.chatgpt.site/
 Repository URL: https://github.com/ikkou/parallax-semantic-xray
-Video URL: TBD after recording and upload
+Video URL: https://youtu.be/YXIoZpCsYt0 (public release scheduled)
 
 ## Project title
 
@@ -92,5 +92,5 @@ PARALLAX requires a developer-supplied contract and execution evidence adapter. 
 
 - Production: https://parallax-semantic-xray.heavenchan.chatgpt.site/
 - Repository: https://github.com/ikkou/parallax-semantic-xray
-- Demo video: TBD after recording and upload
-- Devpost: TBD after final review and submission
+- Demo video: https://youtu.be/YXIoZpCsYt0 (public release scheduled)
+- Devpost: https://devpost.com/software/a-f80hps (project published; Challenge submission not submitted)

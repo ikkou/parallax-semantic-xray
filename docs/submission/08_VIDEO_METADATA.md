@@ -27,10 +27,11 @@ Finally, a native WebMCP run_parity_audit invocation returns structured v2 audit
 Production: https://parallax-semantic-xray.heavenchan.chatgpt.site/
 
 Repository: https://github.com/ikkou/parallax-semantic-xray
+Video: https://youtu.be/YXIoZpCsYt0 (public release scheduled)
 
 Demo video: this video
 
-Devpost: TBD after final review and submission
+Devpost: https://devpost.com/software/a-f80hps (project published; Challenge submission not submitted)
 
 PARALLAX is an evidence-based semantic audit layer. It requires developer-supplied contract and execution evidence. It is not a security scanner, runtime enforcement gateway, arbitrary URL crawler, CI integration, or universal intent-inference system.
 

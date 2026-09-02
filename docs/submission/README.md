@@ -1,6 +1,6 @@
 # PARALLAX Submission Package
 
-Status: repository published; video and Devpost remain pending; not submitted
+Status: repository and Devpost project published; video release pending; Challenge submission not submitted
 Product state: frozen v2
 Production: Sites version 7
 Reviewed source: 188b0962a3f88200046ada924e790859ee1438ac
@@ -42,8 +42,8 @@ Subly is the controlled LIVE PLAYGROUND. External validation records are labelle
 
 - Production: https://parallax-semantic-xray.heavenchan.chatgpt.site/
 - Repository URL: https://github.com/ikkou/parallax-semantic-xray
-- Video URL: TBD after recording and upload
-- Devpost URL: TBD after final copy review and submission
+- Video URL: https://youtu.be/YXIoZpCsYt0 (public release scheduled)
+- Devpost URL: https://devpost.com/software/a-f80hps (project published; Challenge submission not submitted)
 
 ## Evidence boundary
 

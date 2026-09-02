@@ -17,7 +17,7 @@ WebMCP gives a website a second semantic interface: a structured Agent Surface a
 
 The live Playground is available at [parallax-semantic-xray.heavenchan.chatgpt.site](https://parallax-semantic-xray.heavenchan.chatgpt.site/). The source repository is [public on GitHub](https://github.com/ikkou/parallax-semantic-xray).
 
-[Live Playground](https://parallax-semantic-xray.heavenchan.chatgpt.site/) · [Source repository](https://github.com/ikkou/parallax-semantic-xray) · [Developer Contract v1](docs/DEVELOPER_CONTRACT_V1.md)
+[Live Playground](https://parallax-semantic-xray.heavenchan.chatgpt.site/) · [Demo video](https://youtu.be/YXIoZpCsYt0) · [Source repository](https://github.com/ikkou/parallax-semantic-xray) · [Developer Contract v1](docs/DEVELOPER_CONTRACT_V1.md)
 
 ## From Playground to Testing Layer
 

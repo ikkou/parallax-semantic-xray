@@ -1,9 +1,9 @@
 # PARALLAX Repository Publication Handoff
 
-Status: repository publication completed; video and Devpost remain pending
+Status: repository and Devpost project publication completed; video release and Challenge submission remain pending
 Current action: none
 
-This document records the publication handoff and its guardrails. The repository publication step has completed; the video upload and Devpost submission remain separate, pending steps.
+This document records the publication handoff and its guardrails. The repository and Devpost project publication steps have completed; the video release and Challenge submission remain separate, pending steps.
 
 ## Required starting state
 

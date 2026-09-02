@@ -15,7 +15,9 @@ WebMCP gives a website a second semantic interface: a structured Agent Surface a
 - capabilities; and
 - safety and confirmation boundaries.
 
-The public production candidate is available at [parallax-semantic-xray.heavenchan.chatgpt.site](https://parallax-semantic-xray.heavenchan.chatgpt.site/).
+The live Playground is available at [parallax-semantic-xray.heavenchan.chatgpt.site](https://parallax-semantic-xray.heavenchan.chatgpt.site/). The source repository is [public on GitHub](https://github.com/ikkou/parallax-semantic-xray).
+
+[Live Playground](https://parallax-semantic-xray.heavenchan.chatgpt.site/) · [Source repository](https://github.com/ikkou/parallax-semantic-xray) · [Developer Contract v1](docs/DEVELOPER_CONTRACT_V1.md)
 
 ## From Playground to Testing Layer
 
@@ -133,6 +135,8 @@ The validation records live under [`docs/validation/`](docs/validation/). The da
 | Independent SkyHop | PASS | PASS | WARN | WARN | CAPTURED |
 
 The current machine-readable presentation snapshot is [`2026-08-27-production-validation-matrix.json`](docs/validation/2026-08-27-production-validation-matrix.json). The earlier Order Tracking FAIL remains preserved only in the historical [`2026-08-26-order-tracking.json`](docs/validation/2026-08-26-order-tracking.json) record.
+
+The v2 corpus, Tagboard policy/effect record, and The Archive complementary-surface record are linked from the [v2 corpus report](docs/validation/v2/2026-09-01-v2-corpus-report.md), [Tagboard Gate #3](docs/validation/2026-08-29-tagboard-blind-external-validation-gate3.md), and [The Archive Gate #4](docs/validation/2026-08-31-the-archive-blind-external-validation-gate4.md).
 
 ### Flight Search
 
@@ -313,6 +317,8 @@ The current public candidate is the existing [PARALLAX production URL](https://p
 - Flight Search, CineFlow, Order Tracking, and Independent SkyHop records; and
 - actual PARALLAX WebMCP tools.
 
+The public source for this candidate is [ikkou/parallax-semantic-xray](https://github.com/ikkou/parallax-semantic-xray). The repository and the live Playground are separate surfaces: the repository contains the implementation and evidence records, while the Playground provides the interactive X-Ray experience.
+
 The UI distinguishes **HUMAN APPROVED** records from **CAPTURED** records. It does not imply that an external source application is being executed inside PARALLAX.
 
 ## Future work
@@ -350,14 +356,18 @@ Validation:
 ```bash
 npm run test:core
 npm run test:contracts
+npm run test:cli
+npm run test:v2
+npm run test:cli:v2
+npm run test:integration
 npm run typecheck
 npm run lint
 npm run build
 git diff --check
 ```
 
-See [Developer Contract v1](docs/DEVELOPER_CONTRACT_V1.md), [External Validation Plan](docs/EXTERNAL_VALIDATION_PLAN.md), the [current production validation matrix](docs/validation/2026-08-27-production-validation-matrix.json), the [local native WebMCP validation record](docs/validation/2026-08-26-native-webmcp.json), the [pre-update production record](docs/validation/2026-08-27-native-webmcp-production.json), the [post-update production regression record](docs/validation/2026-08-27-native-webmcp-production-update.json), the [post-fix native goal validation](docs/validation/2026-08-27-native-webmcp-goal-validation.json), and the [WebMCP Extension interoperability record](docs/validation/2026-08-27-webmcp-extension-interoperability.md) for the detailed evidence boundary. The production review captures are in [docs/validation/screenshots](docs/validation/screenshots/).
+See [Developer Contract v1](docs/DEVELOPER_CONTRACT_V1.md), [External Validation Plan](docs/EXTERNAL_VALIDATION_PLAN.md), the [current production validation matrix](docs/validation/2026-08-27-production-validation-matrix.json), the [local native WebMCP validation record](docs/validation/2026-08-26-native-webmcp.json), the [pre-update production record](docs/validation/2026-08-27-native-webmcp-production.json), the [post-update production regression record](docs/validation/2026-08-27-native-webmcp-production-update.json), the [post-fix native goal validation](docs/validation/2026-08-27-native-webmcp-goal-validation.json), and the [WebMCP Extension interoperability record](docs/validation/2026-08-27-webmcp-extension-interoperability.md) for the detailed evidence boundary. The [submission package](docs/submission/README.md) contains the judge-facing walkthrough and publication record. Production review captures are in [docs/validation/screenshots](docs/validation/screenshots/).
 
 ## License
 
-MIT
+[MIT](LICENSE)

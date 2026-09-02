@@ -4,7 +4,7 @@
 
 > **200 OK. Semantically wrong.**
 
-[![PARALLAX BROKEN audit](docs/parallax-broken-audit.png)](https://parallax-semantic-xray.heavenchan.chatgpt.site/)
+[![PARALLAX BROKEN audit](docs/parallax-broken-audit.png)](https://parallax.oneshotstar.com/)
 
 PARALLAX is a reusable semantic testing layer for WebMCP applications that detects when human intent and agent execution diverge.
 
@@ -15,9 +15,9 @@ WebMCP gives a website a second semantic interface: a structured Agent Surface a
 - capabilities; and
 - safety and confirmation boundaries.
 
-The live Playground is available at [parallax-semantic-xray.heavenchan.chatgpt.site](https://parallax-semantic-xray.heavenchan.chatgpt.site/). The source repository is [public on GitHub](https://github.com/ikkou/parallax-semantic-xray).
+The live Playground is available at [parallax.oneshotstar.com](https://parallax.oneshotstar.com/). The source repository is [public on GitHub](https://github.com/ikkou/parallax-semantic-xray).
 
-[Live Playground](https://parallax-semantic-xray.heavenchan.chatgpt.site/) · [Demo video](https://youtu.be/YXIoZpCsYt0) · [Source repository](https://github.com/ikkou/parallax-semantic-xray) · [Developer Contract v1](docs/DEVELOPER_CONTRACT_V1.md)
+[Live Playground](https://parallax.oneshotstar.com/) · [Demo video](https://youtu.be/YXIoZpCsYt0) · [Source repository](https://github.com/ikkou/parallax-semantic-xray) · [Developer Contract v1](docs/DEVELOPER_CONTRACT_V1.md)
 
 ## From Playground to Testing Layer
 
@@ -308,7 +308,7 @@ WebMCP adds a structured Agent Surface. PARALLAX explores **semantic parity test
 
 ## Production candidate
 
-The current public candidate is the existing [PARALLAX production URL](https://parallax-semantic-xray.heavenchan.chatgpt.site/). It contains:
+The current public candidate is the [PARALLAX production URL](https://parallax.oneshotstar.com/). It contains:
 
 - the reusable semantic Core and Developer Contract v1;
 - provenance-aware execution evidence;

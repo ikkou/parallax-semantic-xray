@@ -20,7 +20,7 @@ PARALLAX makes those distinctions visible rather than collapsing them into one s
 
 Open the production Playground:
 
-https://parallax-semantic-xray.heavenchan.chatgpt.site/
+https://parallax.oneshotstar.com/
 
 The Subly Playground is a controlled reference implementation. It is not a real third-party subscription service.
 

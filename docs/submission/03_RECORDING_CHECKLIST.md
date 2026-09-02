@@ -2,7 +2,7 @@
 
 ## Freeze
 
-- [ ] Confirm the production URL is https://parallax-semantic-xray.heavenchan.chatgpt.site/
+- [ ] Confirm the production URL is https://parallax.oneshotstar.com/
 - [ ] Confirm Sites version 7.
 - [ ] Confirm source SHA 188b0962a3f88200046ada924e790859ee1438ac.
 - [ ] Confirm v2 · production is selected.

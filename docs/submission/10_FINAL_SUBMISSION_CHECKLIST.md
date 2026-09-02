@@ -5,8 +5,9 @@ Current package state: prepared, not submitted
 
 ## Freeze invariants
 
-- [ ] Production URL is https://parallax-semantic-xray.heavenchan.chatgpt.site/
-- [ ] Sites version is 7.
+- [ ] Production URL is https://parallax.oneshotstar.com/
+- [ ] Cloudflare Pages production deployment is reachable at https://parallax.oneshotstar.com/.
+- [ ] Legacy Sites version 7 remains unchanged.
 - [ ] Reviewed SHA is 188b0962a3f88200046ada924e790859ee1438ac.
 - [ ] Frozen v1 Core hash is unchanged.
 - [ ] Developer Contract v1 hash is unchanged.

@@ -24,7 +24,7 @@ The video then shows two external validation observations. Tagboard separates a 
 
 Finally, a native WebMCP run_parity_audit invocation returns structured v2 audit data and updates the visible execution log.
 
-Production: https://parallax-semantic-xray.heavenchan.chatgpt.site/
+Production: https://parallax.oneshotstar.com/
 
 Repository: https://github.com/ikkou/parallax-semantic-xray
 Video: https://youtu.be/YXIoZpCsYt0 (public release scheduled)

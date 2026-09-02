@@ -8,8 +8,9 @@ This document records the publication handoff and its guardrails. The repository
 ## Required starting state
 
 - Candidate: 188b0962a3f88200046ada924e790859ee1438ac.
-- Production Sites version: 7.
-- Production URL: https://parallax-semantic-xray.heavenchan.chatgpt.site/
+- Production: Cloudflare Pages at https://parallax.oneshotstar.com/.
+- Legacy managed Sites version: 7 remains unchanged.
+- Production URL: https://parallax.oneshotstar.com/
 - Working tree reviewed and free of unintended changes.
 - Frozen v1 Core and Contract v1 hashes match their recorded baselines.
 - README final draft has been reviewed against the claim and limitation ledger.

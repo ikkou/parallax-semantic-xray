@@ -4,7 +4,7 @@
 
 Open:
 
-https://parallax-semantic-xray.heavenchan.chatgpt.site/
+https://parallax.oneshotstar.com/
 
 Use a fresh session. Select v2 · production and Subly — BROKEN.
 
